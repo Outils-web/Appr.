@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Générateur d'Appréciations EPS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0f0f13;
+    --surface: #17171e;
+    --surface2: #1e1e28;
+    --surface3: #252530;
+    --border: #2e2e3d;
+    --accent: #7c6af7;
+    --accent2: #a78bfa;
+    --accent-glow: rgba(124, 106, 247, 0.15);
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --text: #e8e8f0;
+    --text-muted: #7a7a95;
+    --text-faint: #4a4a5e;
+    --tab-seconde: #7c6af7;
+    --tab-lycee: #f472b6;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 20% 20%, rgba(124,106,247,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(244,114,182,0.04) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===================== LOGIN SCREEN ===================== */
+  #loginScreen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+  }
+
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 44px;
+    width: 400px;
+    max-width: 92vw;
+    text-align: center;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,106,247,0.08);
+    animation: fadeUp 0.4s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .login-logo {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, var(--accent), var(--tab-lycee));
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    margin: 0 auto 22px;
+    box-shadow: 0 8px 32px rgba(124,106,247,0.35);
+  }
+
+  .login-card h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 24px;
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+  }
+
+  .login-card p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 32px;
+    line-height: 1.5;
+  }
+
+  .login-field {
+    position: relative;
+    margin-bottom: 16px;
+  }
+
+  .login-field input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 13px 44px 13px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    text-align: center;
+    letter-spacing: 2px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .login-field input::placeholder { letter-spacing: 0; color: var(--text-faint); }
+
+  .login-field input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  .login-field input.error {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(248,113,113,0.12);
+    animation: shake 0.35s ease;
+  }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%      { transform: translateX(-6px); }
+    40%      { transform: translateX(6px); }
+    60%      { transform: translateX(-4px); }
+    80%      { transform: translateX(4px); }
+  }
+
+  .eye-btn {
+    position: absolute;
+    right: 12px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none;
+    cursor: pointer;
+    color: var(--text-faint);
+    font-size: 16px;
+    padding: 4px;
+    transition: color 0.15s;
+  }
+  .eye-btn:hover { color: var(--text-muted); }
+
+  .login-error {
+    font-size: 12px;
+    color: var(--red);
+    margin-bottom: 14px;
+    min-height: 18px;
+  }
+
+  .login-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 6px 24px rgba(124,106,247,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .login-btn:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 8px 28px rgba(124,106,247,0.45); }
+  .login-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .login-footer {
+    margin-top: 24px;
+    font-size: 11px;
+    color: var(--text-faint);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  /* ===================== APP SHELL ===================== */
+  #appShell { display: none; }
+
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 28px 40px 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .logo {
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, var(--accent), var(--tab-lycee));
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 20px rgba(124,106,247,0.3);
+  }
+
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+
+  header p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .header-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .tabs { display: flex; gap: 0; margin-top: 20px; }
+
+  .tab {
+    padding: 10px 24px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .tab:hover { color: var(--text); }
+  .tab.active-seconde { color: var(--tab-seconde); border-bottom-color: var(--tab-seconde); }
+  .tab.active-lycee   { color: var(--tab-lycee);   border-bottom-color: var(--tab-lycee); }
+
+  .btn-logout {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 6px 14px;
+    border-radius: 7px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+  .layout {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    min-height: calc(100vh - 90px);
+  }
+
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+  }
+
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 28px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface2);
+  }
+
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+  }
+
+  .upload-zone .icon { font-size: 28px; margin-bottom: 8px; }
+  .upload-zone p { font-size: 13px; color: var(--text-muted); }
+  .upload-zone small { font-size: 11px; color: var(--text-faint); }
+  #fileInput { display: none; }
+
+  .loaded-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(74,222,128,0.1);
+    color: var(--green);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 8px;
+  }
+
+  label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 6px; }
+
+  select, input[type="text"], input[type="password"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    transition: border-color 0.2s;
+    appearance: none;
+  }
+
+  select:focus, input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  .select-wrap { position: relative; }
+  .select-wrap::after {
+    content: '▾';
+    position: absolute;
+    right: 12px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+    font-size: 12px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 4px 16px rgba(124,106,247,0.3);
+  }
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,106,247,0.4); }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--text); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .btn-ghost:hover { color: var(--text); background: var(--surface2); border-radius: 6px; }
+
+  .btn-green {
+    background: rgba(74,222,128,0.15);
+    color: var(--green);
+    border: 1px solid rgba(74,222,128,0.3);
+  }
+  .btn-green:hover { background: rgba(74,222,128,0.25); }
+
+  .btn-full { width: 100%; }
+
+  .main { padding: 28px 32px; overflow-y: auto; }
+
+  .pane { display: none; }
+  .pane.active { display: block; }
+
+  .table-wrap {
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .table-toolbar {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .table-title { font-size: 13px; font-weight: 500; color: var(--text); }
+
+  .badge {
+    background: var(--surface3);
+    color: var(--text-muted);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 11px;
+  }
+
+  .badge-accent {
+    background: var(--accent-glow);
+    color: var(--accent2);
+    border: 1px solid rgba(124,106,247,0.2);
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+  thead th {
+    padding: 11px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td { padding: 10px 14px; vertical-align: top; }
+
+  .appr-cell { position: relative; }
+
+  .appr-text {
+    width: 100%;
+    min-height: 70px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 6px 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px;
+    line-height: 1.6;
+    resize: vertical;
+    transition: border-color 0.2s;
+  }
+
+  .appr-text:hover { border-color: var(--border); }
+  .appr-text:focus { outline: none; border-color: var(--accent); background: var(--surface2); }
+
+  .appr-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .appr-cell:hover .appr-actions,
+  .appr-cell:focus-within .appr-actions { opacity: 1; }
+
+  .chip { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+  .chip-m { background: rgba(96,165,250,0.12); color: var(--blue); }
+  .chip-f { background: rgba(244,114,182,0.12); color: var(--tab-lycee); }
+
+  .empty-state { text-align: center; padding: 80px 40px; color: var(--text-muted); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+  .empty-state h3 { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--text); margin-bottom: 8px; }
+  .empty-state p { font-size: 14px; line-height: 1.6; }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    width: 520px;
+    max-width: 92vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    animation: modalIn 0.2s ease;
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .modal h3 { font-family: 'DM Serif Display', serif; font-size: 18px; margin-bottom: 6px; }
+  .modal p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+
+  .modal-current {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    max-height: 100px;
+    overflow-y: auto;
+  }
+
+  .modal textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    resize: vertical;
+    min-height: 60px;
+  }
+  .modal textarea:focus { outline: none; border-color: var(--accent); }
+
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+
+  .ai-result {
+    margin-top: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    display: none;
+  }
+  .ai-result.visible { display: block; }
+  .ai-result p { color: var(--text); margin: 0; }
+  .ai-result .ai-label { font-size: 11px; color: var(--accent2); font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-size: 13px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 2000;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-left: 3px solid var(--green); }
+  .toast.error   { border-left: 3px solid var(--red); }
+
+  .api-section {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .api-section details summary {
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-muted);
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .api-section details[open] summary { color: var(--text); margin-bottom: 12px; }
+
+  .stats-row { display: flex; gap: 12px; margin-bottom: 20px; }
+
+  .stat-card {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .stat-card .num { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--text); line-height: 1; }
+  .stat-card .lbl { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  .pane-header { margin-bottom: 22px; }
+  .pane-header h2 { font-family: 'DM Serif Display', serif; font-size: 22px; letter-spacing: -0.3px; }
+  .pane-header p { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+  .tag-seconde {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(124,106,247,0.1); color: var(--accent2);
+    border: 1px solid rgba(124,106,247,0.2);
+    border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 600; margin-left: 10px;
+  }
+  .tag-lycee {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(244,114,182,0.1); color: var(--tab-lycee);
+    border: 1px solid rgba(244,114,182,0.2);
+    border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 600; margin-left: 10px;
+  }
+
+  .divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+  .info-line {
+    font-size: 11.5px;
+    color: var(--text-faint);
+    padding: 8px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  @keyframes flashGreen {
+    0%, 100% { background: transparent; }
+    30% { background: rgba(74,222,128,0.08); }
+  }
+  .just-generated { animation: flashGreen 1s ease; }
+
+  .session-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-faint);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+  }
+  .session-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--green);
+  }
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ===================== LOGIN SCREEN ===================== -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">🏃</div>
+    <h2>Appréciations EPS</h2>
+    <p>Accès sécurisé · Entrez le mot de passe<br>pour accéder à l'application.</p>
+    <div class="login-field">
+      <input type="password" id="pwdInput" placeholder="Mot de passe"
+             onkeydown="if(event.key==='Enter')tryLogin()"
+             oninput="clearLoginError()" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="eye-btn" onclick="toggleEye()" id="eyeBtn" type="button">👁</button>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <button class="login-btn" onclick="tryLogin()" id="loginBtn">
+      <span id="loginSpinner" class="spinner" style="display:none"></span>
+      Accéder
+    </button>
+    <div class="login-footer">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Session chiffrée · Données isolées
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APP SHELL ===================== -->
+<div id="appShell">
+
+<!-- AI MODAL -->
+<div class="modal-overlay" id="aiModal">
+  <div class="modal">
+    <h3>✨ Améliorer avec l'IA</h3>
+    <p>Entrez des mots-clés ou instructions pour reformuler l'appréciation.</p>
+    <div class="modal-current" id="aiCurrentText"></div>
+    <label for="aiKeywords">Mots-clés / instructions</label>
+    <textarea id="aiKeywords" rows="3" placeholder="Ex : insister sur le progrès, ton plus encourageant…"></textarea>
+    <div class="ai-result" id="aiResult">
+      <div class="ai-label">✦ Suggestion IA</div>
+      <p id="aiResultText"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeAiModal()">Annuler</button>
+      <button class="btn btn-primary" id="aiGenerateBtn" onclick="callAI()">
+        <span id="aiSpinner" class="spinner" style="display:none"></span>
+        Générer
+      </button>
+      <button class="btn btn-green" id="aiApplyBtn" onclick="applyAI()" style="display:none">✓ Appliquer</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">🏃</div>
+  <div>
+    <h1>Appréciations EPS</h1>
+    <p>Générateur automatique · Conforme PRONOTE</p>
+  </div>
+  <div class="header-actions">
+    <div class="tabs">
+      <button class="tab active-seconde" onclick="switchPane('seconde')">Seconde</button>
+      <button class="tab" onclick="switchPane('lycee')">1ère / Terminale</button>
+    </div>
+    <div class="session-badge" id="sessionBadge">
+      <span class="session-dot"></span>
+      <span id="sessionLabel">Session active</span>
+    </div>
+    <button class="btn-logout" onclick="logout()">⎋ Déconnexion</button>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <aside class="sidebar">
+
+    <div>
+      <div class="section-label">📂 Fichier élèves</div>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()"
+           ondragover="event.preventDefault();this.classList.add('dragover')"
+           ondragleave="this.classList.remove('dragover')"
+           ondrop="handleDrop(event)">
+        <div class="icon">📊</div>
+        <p>Glissez votre Excel ici</p>
+        <small>ou cliquez pour parcourir</small>
+        <div id="uploadedBadge" style="display:none;" class="loaded-badge">✓ Fichier chargé</div>
+      </div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="loadFile(this.files[0])">
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <div class="section-label">🎓 Filtres</div>
+      <label>Classe</label>
+      <div class="select-wrap">
+        <select id="classeFilter" onchange="applyFilters()">
+          <option value="">Toutes les classes</option>
+        </select>
+      </div>
+      <div style="margin-top:10px">
+        <label>Rechercher un élève</label>
+        <input type="text" id="searchInput" placeholder="Nom ou prénom…" oninput="applyFilters()">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <div class="section-label">📋 Catégorie</div>
+      <div class="select-wrap">
+        <select id="categorySelect">
+          <option value="1">1 – Excellent semestre (moteur)</option>
+          <option value="2">2 – Très bon semestre (sérieux, investi)</option>
+          <option value="3">3 – Semestre satisfaisant</option>
+          <option value="4">4 – Discret mais sérieux</option>
+          <option value="5">5 – Sérieux, manque de concentration</option>
+          <option value="6">6 – Potentiel irrégulier</option>
+          <option value="7">7 – Dynamique à canaliser</option>
+          <option value="8">8 – Manque d'investissement</option>
+          <option value="9">9 – Inaptitude sur la période</option>
+          <option value="10">10 – Moteur & esprit collectif</option>
+          <option value="11">11 – Excellent (collectif)</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="generateAll()">⚡ Générer les appréciations</button>
+    <button class="btn btn-outline btn-full" onclick="clearAll()">🗑 Effacer les appréciations</button>
+
+    <div class="divider"></div>
+
+    <div>
+      <div class="section-label">📤 Export</div>
+      <button class="btn btn-green btn-full" onclick="exportExcel()">↓ Exporter en Excel (PRONOTE)</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="api-section">
+      <details>
+        <summary>🤖 Configuration IA (optionnel)</summary>
+        <label>Clé OpenRouter (gratuit)</label>
+        <input type="password" id="apiKeyInput" placeholder="sk-or-v1-…">
+        <small style="color:var(--text-faint);font-size:11px;display:block;margin-top:6px;">
+          Clé gratuite sur <strong>openrouter.ai</strong>
+        </small>
+      </details>
+    </div>
+
+  </aside>
+
+  <main class="main">
+
+    <!-- SECONDE PANE -->
+    <div class="pane active" id="pane-seconde">
+      <div class="pane-header">
+        <h2>Espace Seconde <span class="tag-seconde">Genré · Avec prénom</span></h2>
+        <p>Appréciations de semestre, genrées (M/F), avec le prénom de l'élève.</p>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="num" id="nSeconde">–</div><div class="lbl">Élèves Seconde</div></div>
+        <div class="stat-card"><div class="num" id="nSecGenerated">–</div><div class="lbl">Appréciations générées</div></div>
+      </div>
+      <div class="table-wrap" id="tableWrapSeconde">
+        <div class="empty-state">
+          <div class="icon">📋</div>
+          <h3>Aucun fichier importé</h3>
+          <p>Importez votre fichier Excel pour afficher<br>la liste des élèves de Seconde.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- LYCÉE PANE -->
+    <div class="pane" id="pane-lycee">
+      <div class="pane-header">
+        <h2>Espace 1ère / Terminale <span class="tag-lycee">Masculin neutre · Anonyme</span></h2>
+        <p>Appréciations semestre + Fiche Avenir. Toujours au masculin, sans nom/prénom.</p>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="num" id="nLycee">–</div><div class="lbl">Élèves 1ère/Term</div></div>
+        <div class="stat-card"><div class="num" id="nLycGenerated">–</div><div class="lbl">Appréciations générées</div></div>
+      </div>
+      <div class="table-wrap" id="tableWrapLycee">
+        <div class="empty-state">
+          <div class="icon">📋</div>
+          <h3>Aucun fichier importé</h3>
+          <p>Importez votre fichier Excel pour afficher<br>la liste des élèves de 1ère / Terminale.</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+</div><!-- end appShell -->
+
+<script>
+// ============================================================
+//  SECURITY — AUTH & CRYPTO
+//  Le mot de passe n'est JAMAIS stocké en clair dans ce code.
+//  Seul son hash SHA-256 est présent, et les données localStorage
+//  sont chiffrées avec AES-GCM dérivé de la session.
+// ============================================================
+
+// SHA-256 digest de "appreciationseps" — généré hors ligne
+const _h = [0x34,0x50,0x75,0x85,0x05,0xbe,0x67,0x7f,0x5c,0xe6,0xdd,0x93,0x4c,0x47,0xdd,0xb7,
+            0x19,0xac,0xce,0xf6,0xb1,0x05,0x4d,0x19,0xe1,0x08,0xef,0x22,0x4a,0x6e,0xe4,0xdd];
+
+// Session keys
+const _SK  = '_eps_session_v2';   // sessionStorage key (token)
+const _LS  = '_eps_data_v2_';     // localStorage prefix  (+ token suffix)
+const _EXP = 8 * 60 * 60 * 1000; // 8h session lifetime
+
+let _sessionToken = null;
+let _aesKey = null;  // CryptoKey for this session
+
+// --- SHA-256 via Web Crypto ---
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256',
+    new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf));
+}
+
+// --- Derive AES-GCM key from token ---
+async function deriveKey(token) {
+  const raw = new TextEncoder().encode(token + '_eps_aes_v2');
+  const base = await crypto.subtle.importKey('raw', raw, 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: new TextEncoder().encode('eps_salt_2024'), iterations: 100000, hash: 'SHA-256' },
+    base,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+// --- AES-GCM encrypt ---
+async function aesEncrypt(key, plaintext) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    new TextEncoder().encode(plaintext)
+  );
+  // Pack iv + ciphertext as base64
+  const combined = new Uint8Array(iv.byteLength + enc.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(enc), iv.byteLength);
+  return btoa(String.fromCharCode(...combined));
+}
+
+// --- AES-GCM decrypt ---
+async function aesDecrypt(key, b64) {
+  try {
+    const combined = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const iv = combined.slice(0, 12);
+    const ct = combined.slice(12);
+    const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+    return new TextDecoder().decode(dec);
+  } catch { return null; }
+}
+
+// --- Save to encrypted localStorage ---
+async function secureSet(suffix, data) {
+  if (!_aesKey || !_sessionToken) return;
+  try {
+    const encrypted = await aesEncrypt(_aesKey, JSON.stringify(data));
+    localStorage.setItem(_LS + _sessionToken + '_' + suffix, encrypted);
+  } catch(e) { console.warn('Storage error', e); }
+}
+
+// --- Load from encrypted localStorage ---
+async function secureGet(suffix) {
+  if (!_aesKey || !_sessionToken) return null;
+  try {
+    const raw = localStorage.getItem(_LS + _sessionToken + '_' + suffix);
+    if (!raw) return null;
+    const json = await aesDecrypt(_aesKey, raw);
+    return json ? JSON.parse(json) : null;
+  } catch { return null; }
+}
+
+// --- Clean up this session's storage ---
+function cleanSessionStorage() {
+  if (!_sessionToken) return;
+  const prefix = _LS + _sessionToken;
+  Object.keys(localStorage)
+    .filter(k => k.startsWith(prefix))
+    .forEach(k => localStorage.removeItem(k));
+}
+
+// --- Generate random session token ---
+function generateToken() {
+  const arr = crypto.getRandomValues(new Uint8Array(24));
+  return btoa(String.fromCharCode(...arr)).replace(/[+/=]/g, '');
+}
+
+// ============================================================
+//  LOGIN / LOGOUT
+// ============================================================
+async function tryLogin() {
+  const input = document.getElementById('pwdInput').value;
+  const btn = document.getElementById('loginBtn');
+  const sp  = document.getElementById('loginSpinner');
+
+  if (!input) { setLoginError('Entrez le mot de passe.'); return; }
+
+  btn.disabled = true;
+  sp.style.display = 'inline-block';
+
+  // Artificial delay to prevent brute force timing
+  await new Promise(r => setTimeout(r, 400 + Math.random() * 200));
+
+  const digest = await sha256(input);
+  const match = digest.length === _h.length && digest.every((b, i) => b === _h[i]);
+
+  if (!match) {
+    sp.style.display = 'none';
+    btn.disabled = false;
+    setLoginError('Mot de passe incorrect.');
+    const field = document.getElementById('pwdInput');
+    field.classList.add('error');
+    field.value = '';
+    setTimeout(() => field.classList.remove('error'), 600);
+    return;
+  }
+
+  // Create session
+  _sessionToken = generateToken();
+  _aesKey = await deriveKey(_sessionToken);
+  const expiry = Date.now() + _EXP;
+
+  sessionStorage.setItem(_SK, JSON.stringify({ token: _sessionToken, expiry }));
+
+  sp.style.display = 'none';
+  btn.disabled = false;
+
+  // Launch app
+  await bootApp();
+}
+
+function clearLoginError() {
+  document.getElementById('loginError').textContent = '';
+}
+
+function setLoginError(msg) {
+  document.getElementById('loginError').textContent = msg;
+}
+
+function toggleEye() {
+  const i = document.getElementById('pwdInput');
+  i.type = i.type === 'password' ? 'text' : 'password';
+}
+
+async function checkSession() {
+  const raw = sessionStorage.getItem(_SK);
+  if (!raw) return false;
+  try {
+    const { token, expiry } = JSON.parse(raw);
+    if (Date.now() > expiry) { sessionStorage.removeItem(_SK); return false; }
+    _sessionToken = token;
+    _aesKey = await deriveKey(token);
+    return true;
+  } catch { return false; }
+}
+
+function logout() {
+  cleanSessionStorage();
+  sessionStorage.removeItem(_SK);
+  _sessionToken = null;
+  _aesKey = null;
+  allEleves = [];
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('pwdInput').value = '';
+  clearLoginError();
+  showToast('✓ Déconnexion effectuée', 'success');
+}
+
+async function bootApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appShell').style.display = 'block';
+
+  // Show session info
+  const { expiry } = JSON.parse(sessionStorage.getItem(_SK));
+  const remaining = Math.round((expiry - Date.now()) / 3600000);
+  document.getElementById('sessionLabel').textContent = `Session · ${remaining}h restante${remaining > 1 ? 's' : ''}`;
+
+  // Restore saved data
+  const saved = await secureGet('eleves');
+  if (saved && Array.isArray(saved)) {
+    allEleves = saved;
+    const savedFile = await secureGet('filename');
+    if (savedFile) {
+      document.getElementById('uploadedBadge').style.display = 'inline-flex';
+      document.getElementById('uploadedBadge').textContent = '✓ ' + savedFile;
+    }
+    // Rebuild classe filter
+    const classes = [...new Set(allEleves.map(e => e.classe).filter(Boolean))].sort();
+    const sel = document.getElementById('classeFilter');
+    sel.innerHTML = '<option value="">Toutes les classes</option>';
+    classes.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+    applyFilters();
+  }
+
+  updateStats();
+}
+
+// Auto-expire check every minute
+setInterval(() => {
+  const raw = sessionStorage.getItem(_SK);
+  if (!raw && document.getElementById('appShell').style.display !== 'none') {
+    logout();
+    showToast('⏱ Session expirée — reconnectez-vous', 'error');
+  }
+}, 60000);
+
+// ============================================================
+//  DATA STORE
+// ============================================================
+let allEleves = [];
+let filteredEleves = [];
+let currentPane = 'seconde';
+let aiTargetIdx = null;
+let aiTargetField = null;
+let aiSuggestion = '';
+
+// Persist to encrypted localStorage after any mutation
+async function persistData() {
+  await secureSet('eleves', allEleves);
+}
+
+// ============================================================
+//  APPRECIATION TEMPLATES
+// ============================================================
+const TEMPLATES = {
+  1: {
+    M: [
+      "X est un élève très sérieux et pleinement investi en EPS. Moteur au sein du groupe, vous participez activement aux activités et adoptez une attitude exemplaire. Votre engagement constant et votre dynamisme ont permis de réaliser un excellent semestre. Bravo.",
+      "X se distingue par son sérieux et son excellent état d'esprit en EPS. Vous êtes moteur du groupe et participez activement aux activités. Votre engagement et votre dynamisme ont contribué à un excellent semestre. Bravo !",
+      "X est moteur et volontaire en EPS. Vous participez activement, favorisez l'entraide et encouragez le groupe. Votre engagement constant a permis de réussir un excellent semestre. Bravo !",
+      "X montre un excellent état d'esprit et s'implique pleinement en EPS. Vous stimulez vos camarades et contribuez à une ambiance positive. En poursuivant sur cette voie, vous consoliderez vos acquis. Félicitations !",
+      "X fait preuve de sérieux et d'un excellent esprit collectif en EPS. Vous motivez le groupe et participez activement à toutes les activités. Votre énergie et votre engagement ont permis un excellent semestre. Félicitations !"
+    ],
+    F: [
+      "X est une élève très sérieuse et pleinement investie en EPS. Moteur au sein du groupe, vous participez activement aux activités et adoptez une attitude exemplaire. Votre engagement constant et votre dynamisme ont permis de réaliser un excellent semestre. Bravo.",
+      "X se distingue par son sérieux et son excellent état d'esprit en EPS. Vous êtes moteur du groupe et participez activement aux activités. Votre engagement et votre dynamisme ont contribué à un excellent semestre. Bravo !",
+      "X joue un rôle fédérateur en EPS. Vous participez activement et contribuez à une ambiance de travail positive. Votre sérieux et votre engagement ont permis un excellent semestre. Bravo !",
+      "X montre un excellent état d'esprit et s'implique pleinement en EPS. Vous stimulez vos camarades et contribuez à une ambiance positive. En poursuivant sur cette voie, vous consoliderez vos acquis. Félicitations !",
+      "X fait preuve de sérieux et d'un excellent esprit collectif en EPS. Vous motivez le groupe et participez activement à toutes les activités. Votre énergie et votre engagement ont permis un excellent semestre. Félicitations !"
+    ]
+  },
+  2: {
+    M: [
+      "X fait preuve de sérieux et d'investissement en EPS. Vous êtes à l'écoute des consignes et participez activement. En poursuivant cette attention, vous consoliderez vos compétences. Votre engagement a contribué à un très bon semestre. Bravo !",
+      "X est appliqué et attentif en EPS. Vous réalisez les activités avec sérieux et régularité. En maintenant cette rigueur, vous progresserez encore. Votre implication a contribué à un très bon semestre. Félicitations !",
+      "X est autonome et motivé en EPS. Vous prenez des initiatives et travaillez avec indépendance. En continuant sur cette voie, vous consoliderez vos acquis. Votre engagement a permis un très bon semestre. Bravo !",
+      "X participe régulièrement et de façon constructive aux activités. Vous respectez les consignes et êtes impliqué dans le groupe. En maintenant ce rythme, vous progresserez davantage. Votre attitude a contribué à un très bon semestre. Félicitations !",
+      "X fait preuve de sérieux et d'investissement en EPS. Vous vous impliquez pleinement dans les activités et appliquez les consignes avec rigueur. Votre engagement régulier et votre bonne attitude contribuent à un très bon semestre."
+    ],
+    F: [
+      "X fait preuve de sérieux et d'investissement en EPS. Vous êtes à l'écoute des consignes et participez activement. En poursuivant cette attention, vous consoliderez vos compétences. Votre engagement a contribué à un très bon semestre. Bravo !",
+      "X est appliquée et attentive en EPS. Vous réalisez les activités avec sérieux et régularité. En maintenant cette rigueur, vous progresserez encore. Votre implication a contribué à un très bon semestre. Félicitations !",
+      "X est autonome et motivée en EPS. Vous prenez des initiatives et travaillez avec indépendance. En continuant sur cette voie, vous consoliderez vos acquis. Votre engagement a permis un très bon semestre. Bravo !",
+      "X participe régulièrement et de façon constructive aux activités. Vous respectez les consignes et êtes impliquée dans le groupe. En maintenant ce rythme, vous progresserez davantage. Votre attitude a contribué à un très bon semestre. Félicitations !",
+      "X fait preuve de sérieux et d'investissement en EPS. Vous vous impliquez pleinement dans les activités et appliquez les consignes avec rigueur. Votre engagement régulier et votre bonne attitude contribuent à un très bon semestre."
+    ]
+  },
+  3: {
+    M: [
+      "X est un élève sérieux et appliqué en EPS. Vous réalisez les activités avec régularité et respectez les consignes. En restant constant, vous pourrez améliorer vos performances. Votre sérieux a permis un semestre satisfaisant. Bravo !",
+      "X adopte une attitude positive et appliquée en EPS. Vous participez aux activités avec sérieux et respect. En développant votre engagement, vous consoliderez vos acquis. Votre implication a contribué à un semestre satisfaisant. Félicitations !",
+      "X s'implique correctement dans les activités en EPS. Vous suivez les consignes et participez avec sérieux. En vous investissant davantage, vous pourrez progresser encore. Votre sérieux a permis un semestre satisfaisant. Bravo !",
+      "X est un élève sérieux et appliqué en EPS. Vous réalisez les activités demandées avec attention et respectez les consignes. Votre sérieux constant contribue à un semestre satisfaisant.",
+      "X fait preuve de régularité et de sérieux en EPS. Votre participation est constante et vous respectez les consignes. En maintenant ce cap, vous progresserez davantage. Semestre satisfaisant. Bravo !"
+    ],
+    F: [
+      "X est une élève sérieuse et appliquée en EPS. Vous réalisez les activités avec régularité et respectez les consignes. En restant constante, vous pourrez améliorer vos performances. Votre sérieux a permis un semestre satisfaisant. Bravo !",
+      "X adopte une attitude positive et appliquée en EPS. Vous participez aux activités avec sérieux et respect. En développant votre engagement, vous consoliderez vos acquis. Votre implication a contribué à un semestre satisfaisant. Félicitations !",
+      "X s'implique correctement dans les activités en EPS. Vous suivez les consignes et participez avec sérieux. En vous investissant davantage, vous pourrez progresser encore. Votre sérieux a permis un semestre satisfaisant. Bravo !",
+      "X est une élève sérieuse et appliquée en EPS. Vous réalisez les activités demandées avec attention et respectez les consignes. Votre sérieux constant contribue à un semestre satisfaisant.",
+      "X fait preuve de régularité et de sérieux en EPS. Votre participation est constante et vous respectez les consignes. En maintenant ce cap, vous progresserez davantage. Semestre satisfaisant. Bravo !"
+    ]
+  },
+  4: {
+    M: [
+      "X est un élève discret mais sérieux en EPS. Vous participez calmement aux activités et accomplissez votre travail avec soin. En gagnant un peu plus en audace dans le groupe, vous pourrez progresser davantage. Votre sérieux est appréciable. Bravo !",
+      "X adopte une attitude respectueuse et appliquée en EPS. Vous suivez les consignes et contribuez au bon déroulement des activités. En participant plus activement, vous consoliderez vos compétences. Votre implication est appréciable. Félicitations !",
+      "X est appliqué et attentif en EPS. Vous réalisez vos activités avec soin et régularité. En participant un peu plus aux échanges de groupe, vous pourrez progresser davantage. Votre sérieux est notable. Bravo !",
+      "X est un élève discret mais sérieux en EPS. Vous accomplissez votre travail avec application et participez de manière régulière aux activités. Votre sérieux et votre implication sont appréciables."
+    ],
+    F: [
+      "X est une élève discrète mais sérieuse en EPS. Vous participez calmement aux activités et accomplissez votre travail avec soin. En gagnant un peu plus en audace dans le groupe, vous pourrez progresser davantage. Votre sérieux est appréciable. Bravo !",
+      "X adopte une attitude respectueuse et appliquée en EPS. Vous suivez les consignes et contribuez au bon déroulement des activités. En participant plus activement, vous consoliderez vos compétences. Votre implication est appréciable. Félicitations !",
+      "X est appliquée et attentive en EPS. Vous réalisez vos activités avec soin et régularité. En participant un peu plus aux échanges de groupe, vous pourrez progresser davantage. Votre sérieux est notable. Bravo !",
+      "X est une élève discrète mais sérieuse en EPS. Vous accomplissez votre travail avec application et participez de manière régulière aux activités. Votre sérieux et votre implication sont appréciables."
+    ]
+  },
+  5: {
+    M: [
+      "X fait preuve de sérieux en EPS. Vous participez aux activités, mais votre attention se disperse parfois. En restant concentré jusqu'au bout, vous consoliderez vos acquis. Votre engagement reste appréciable. Bravo !",
+      "X s'investit en EPS, mais votre concentration est irrégulière. Vous pourriez progresser davantage en écoutant avec plus d'attention les consignes. Votre sérieux est notable malgré ces points à améliorer. Félicitations !",
+      "X est sérieux en EPS, mais vous avez tendance à vous disperser sur certaines activités. En renforçant votre attention, vous progresserez plus efficacement. Votre engagement reste apprécié. Bravo !",
+      "X fait preuve de sérieux en EPS. Toutefois, une meilleure concentration lors des activités et une attention plus soutenue aux consignes vous permettraient de progresser davantage."
+    ],
+    F: [
+      "X fait preuve de sérieux en EPS. Vous participez aux activités, mais votre attention se disperse parfois. En restant concentrée jusqu'au bout, vous consoliderez vos acquis. Votre engagement reste appréciable. Bravo !",
+      "X s'investit en EPS, mais votre concentration est irrégulière. Vous pourriez progresser davantage en écoutant avec plus d'attention les consignes. Votre sérieux est notable malgré ces points à améliorer. Félicitations !",
+      "X est sérieuse en EPS, mais vous avez tendance à vous disperser sur certaines activités. En renforçant votre attention, vous progresserez plus efficacement. Votre engagement reste apprécié. Bravo !",
+      "X fait preuve de sérieux en EPS. Toutefois, une meilleure concentration lors des activités et une attention plus soutenue aux consignes vous permettraient de progresser davantage."
+    ]
+  },
+  6: {
+    M: [
+      "X possède de bonnes capacités en EPS. Votre investissement reste irrégulier. En vous impliquant davantage et en restant concentré, vous pourrez tirer pleinement parti des activités. Votre potentiel est prometteur. Bravo !",
+      "X montre de bonnes aptitudes en EPS, mais votre engagement est parfois intermittent. En participant plus régulièrement, vous améliorerez vos performances. Votre potentiel est évident. Félicitations !",
+      "X a du potentiel en EPS, mais votre investissement fluctue. Vous pourriez tirer un meilleur profit des activités en vous impliquant plus régulièrement. Votre sérieux est encourageant. Bravo !",
+      "X possède de bonnes capacités en EPS, mais votre investissement reste irrégulier. En vous impliquant davantage et en restant plus concentré, vous pourriez tirer pleinement parti des activités proposées."
+    ],
+    F: [
+      "X possède de bonnes capacités en EPS. Votre investissement reste irrégulier. En vous impliquant davantage et en restant concentrée, vous pourrez tirer pleinement parti des activités. Votre potentiel est prometteur. Bravo !",
+      "X montre de bonnes aptitudes en EPS, mais votre engagement est parfois intermittent. En participant plus régulièrement, vous améliorerez vos performances. Votre potentiel est évident. Félicitations !",
+      "X a du potentiel en EPS, mais votre investissement fluctue. Vous pourriez tirer un meilleur profit des activités en vous impliquant plus régulièrement. Votre sérieux est encourageant. Bravo !",
+      "X possède de bonnes capacités en EPS, mais votre investissement reste irrégulier. En vous impliquant davantage et en restant plus concentrée, vous pourriez tirer pleinement parti des activités proposées."
+    ]
+  },
+  7: {
+    M: [
+      "X est un élève dynamique en EPS. Vous participez avec énergie, mais votre attention se disperse parfois. En canalisant mieux votre énergie, vous progresserez davantage. Votre motivation est appréciable. Bravo !",
+      "X est très actif en EPS et peut devenir moteur du groupe. En concentrant votre énergie sur les tâches demandées, vous optimiserez vos résultats. Votre enthousiasme est un atout. Félicitations !",
+      "X a une énergie débordante en EPS. Vous participez avec vitalité, mais parfois au détriment de la concentration. En vous focalisant davantage sur les consignes, vous progresserez efficacement. Bravo !",
+      "X est un élève dynamique en EPS. En canalisant mieux votre énergie et en restant concentré sur les tâches demandées, vous pourriez améliorer votre efficacité."
+    ],
+    F: [
+      "X est une élève dynamique en EPS. Vous participez avec énergie, mais votre attention se disperse parfois. En canalisant mieux votre énergie, vous progresserez davantage. Votre motivation est appréciable. Bravo !",
+      "X est très active en EPS et peut devenir moteur du groupe. En concentrant votre énergie sur les tâches demandées, vous optimiserez vos résultats. Votre enthousiasme est un atout. Félicitations !",
+      "X a une énergie débordante en EPS. Vous participez avec vitalité, mais parfois au détriment de la concentration. En vous focalisant davantage sur les consignes, vous progresserez efficacement. Bravo !",
+      "X est une élève dynamique en EPS. En canalisant mieux votre énergie et en restant concentrée sur les tâches demandées, vous pourriez améliorer votre efficacité."
+    ]
+  },
+  8: {
+    M: [
+      "X n'a pas pleinement exploité son potentiel en EPS. Votre investissement et votre attention sont insuffisants. En vous impliquant plus sérieusement, vous pourrez améliorer vos résultats. Une évolution de votre attitude est nécessaire.",
+      "X montre un sérieux limité en EPS. Votre engagement reste insuffisant et votre attention à certaines consignes est faible. Un effort plus régulier est indispensable pour progresser. Changement nécessaire.",
+      "X n'exploite pas pleinement ses capacités en EPS. Votre implication est à renforcer et votre attention doit s'améliorer. En évoluant sur ces points, vous pourrez progresser.",
+      "X n'a pas pleinement exploité son potentiel en EPS ce semestre. Un manque d'investissement et d'attention aux consignes a limité vos progrès. Une implication plus sérieuse est indispensable."
+    ],
+    F: [
+      "X n'a pas pleinement exploité son potentiel en EPS. Votre investissement et votre attention sont insuffisants. En vous impliquant plus sérieusement, vous pourrez améliorer vos résultats. Une évolution de votre attitude est nécessaire.",
+      "X montre un sérieux limité en EPS. Votre engagement reste insuffisant et votre attention à certaines consignes est faible. Un effort plus régulier est indispensable pour progresser. Changement nécessaire.",
+      "X n'exploite pas pleinement ses capacités en EPS. Votre implication est à renforcer et votre attention doit s'améliorer. En évoluant sur ces points, vous pourrez progresser.",
+      "X n'a pas pleinement exploité son potentiel en EPS ce semestre. Un manque d'investissement et d'attention aux consignes a limité vos progrès. Une implication plus sérieuse est indispensable."
+    ]
+  },
+  9: {
+    M: [
+      "X a fait preuve de sérieux en EPS. Une inaptitude sur une partie de la période a limité votre participation aux activités. Votre engagement reste apprécié malgré cette contrainte. Bravo !",
+      "X a démontré un bon état d'esprit en EPS malgré une inaptitude physique sur la période. Votre implication reste appréciable.",
+      "X a fait preuve de sérieux en EPS. Une inaptitude sur une partie de la période a limité votre participation aux activités."
+    ],
+    F: [
+      "X a fait preuve de sérieux en EPS. Une inaptitude sur une partie de la période a limité votre participation aux activités. Votre engagement reste apprécié malgré cette contrainte. Bravo !",
+      "X a démontré un bon état d'esprit en EPS malgré une inaptitude physique sur la période. Votre implication reste appréciable.",
+      "X a fait preuve de sérieux en EPS. Une inaptitude sur une partie de la période a limité votre participation aux activités."
+    ]
+  },
+  10: {
+    M: [
+      "X se distingue par son sérieux et son excellent état d'esprit en EPS. Vous contribuez activement à l'esprit collectif et participez pleinement aux activités. Votre engagement est très apprécié. Bravo !",
+      "X est moteur dans le groupe et démontre un excellent état d'esprit. Vous aidez vos camarades et favorisez l'entraide. Votre investissement a permis de réussir un excellent semestre. Félicitations !",
+      "X joue un rôle fédérateur en EPS. Vous participez activement et contribuez à une ambiance de travail positive. Votre sérieux et votre engagement ont permis un excellent semestre. Bravo !",
+      "X se distingue par son sérieux et son excellent état d'esprit en EPS. Moteur au sein du groupe, vous contribuez activement à une ambiance de travail positive."
+    ],
+    F: [
+      "X se distingue par son sérieux et son excellent état d'esprit en EPS. Vous contribuez activement à l'esprit collectif et participez pleinement aux activités. Votre engagement est très apprécié. Bravo !",
+      "X est moteur dans le groupe et démontre un excellent état d'esprit. Vous aidez vos camarades et favorisez l'entraide. Votre investissement a permis de réussir un excellent semestre. Félicitations !",
+      "X joue un rôle fédérateur en EPS. Vous participez activement et contribuez à une ambiance de travail positive. Votre sérieux et votre engagement ont permis un excellent semestre. Bravo !",
+      "X se distingue par son sérieux et son excellent état d'esprit en EPS. Moteur au sein du groupe, vous contribuez activement à une ambiance de travail positive."
+    ]
+  },
+  11: {
+    M: [
+      "X se distingue par son sérieux et son excellent état d'esprit en EPS. Vous êtes moteur du groupe et participez activement aux activités. Votre engagement et votre dynamisme ont contribué à un excellent semestre. Bravo !",
+      "X montre un excellent état d'esprit et s'implique pleinement en EPS. Vous stimulez vos camarades et contribuez à une ambiance positive. En poursuivant sur cette voie, vous consoliderez vos acquis. Félicitations !",
+      "X est moteur et volontaire en EPS. Vous participez activement, favorisez l'entraide et encouragez le groupe. Votre engagement constant a permis de réussir un excellent semestre. Bravo !",
+      "X se distingue par son implication et son esprit positif en EPS. Vous contribuez à la dynamique du groupe et soutenez vos camarades. Votre sérieux et votre motivation ont permis un excellent semestre. Félicitations !",
+      "X joue un rôle fédérateur en EPS. Vous participez pleinement aux activités et inspirez vos camarades par votre sérieux et votre état d'esprit. Votre engagement a permis un excellent semestre. Bravo !",
+      "X fait preuve de sérieux et d'un excellent esprit collectif en EPS. Vous motivez le groupe et participez activement à toutes les activités. Votre énergie et votre engagement ont permis un excellent semestre. Félicitations !"
+    ],
+    F: [
+      "X se distingue par son sérieux et son excellent état d'esprit en EPS. Vous êtes moteur du groupe et participez activement aux activités. Votre engagement et votre dynamisme ont contribué à un excellent semestre. Bravo !",
+      "X montre un excellent état d'esprit et s'implique pleinement en EPS. Vous stimulez vos camarades et contribuez à une ambiance positive. En poursuivant sur cette voie, vous consoliderez vos acquis. Félicitations !",
+      "X est moteur et volontaire en EPS. Vous participez activement, favorisez l'entraide et encouragez le groupe. Votre engagement constant a permis de réussir un excellent semestre. Bravo !",
+      "X se distingue par son implication et son esprit positif en EPS. Vous contribuez à la dynamique du groupe et soutenez vos camarades. Votre sérieux et votre motivation ont permis un excellent semestre. Félicitations !",
+      "X joue un rôle fédérateur en EPS. Vous participez pleinement aux activités et inspirez vos camarades par votre sérieux et votre état d'esprit. Votre engagement a permis un excellent semestre. Bravo !",
+      "X fait preuve de sérieux et d'un excellent esprit collectif en EPS. Vous motivez le groupe et participez activement à toutes les activités. Votre énergie et votre engagement ont permis un excellent semestre. Félicitations !"
+    ]
+  }
+};
+
+const FICHE_AVENIR = {
+  1:["Très bons résultats. Engagement exemplaire et esprit collectif remarquable. Élève moteur dans le groupe, apportant une contribution positive aux activités.","Excellents résultats. Travail sérieux et investi, avec un dynamisme et un état d'esprit remarquables ayant favorisé la réussite du groupe.","Résultats excellents. Implication constante et attitude exemplaire. Élève moteur ayant contribué activement à l'ambiance de travail positive."],
+  2:["Bons résultats. Travail sérieux et appliqué, avec investissement régulier et attitude favorable à la progression.","Très bons résultats. Travail sérieux et investi, avec une participation active et une volonté constante de progresser.","Bons résultats. Travail sérieux et appliqué, avec implication régulière et attitude calme favorisant la progression."],
+  3:["Résultats corrects. Travail sérieux et régulier, avec une attitude respectueuse et une implication constante.","Résultats corrects. Travail sérieux avec implication parfois limitée ; gagner en régularité et en rigueur permettra de progresser davantage.","Résultats satisfaisants. Travail sérieux et appliqué, avec une participation régulière et un respect des consignes."],
+  4:["Résultats corrects. Travail sérieux et appliqué, avec besoin de renforcer la concentration et l'autonomie pour progresser davantage.","Résultats corrects. Travail sérieux et investi, avec besoin de renforcer la concentration et l'autonomie pour exploiter pleinement ses capacités.","Bons résultats. Travail sérieux et appliqué, avec implication constante et attitude respectueuse en cours."],
+  5:["Résultats corrects. Travail sérieux avec concentration irrégulière ; un effort soutenu d'attention permettra d'exploiter pleinement les capacités.","Résultats corrects. Travail sérieux et investi, avec besoin de renforcer la concentration et l'autonomie pour exploiter pleinement ses capacités.","Résultats satisfaisants. Travail sérieux mais attention parfois dispersée ; une concentration accrue favoriserait la progression."],
+  6:["Résultats corrects. Travail sérieux et investi, avec besoin de renforcer la régularité et l'engagement pour exploiter pleinement le potentiel.","Résultats variables. Capacités réelles mais investissement irrégulier ; une implication plus constante permettrait de progresser davantage.","Résultats corrects. Potentiel evident mais engagement à renforcer pour une progression optimale."],
+  7:["Résultats corrects. Dynamisme certain, mais besoin de canaliser l'énergie pour optimiser l'efficacité en cours.","Résultats satisfaisants. Enthousiasme et dynamisme appréciables, avec besoin de renforcer la concentration sur les consignes.","Résultats corrects. Participation active et dynamique ; un meilleur contrôle de l'énergie favoriserait la progression."],
+  8:["Résultats insuffisants. Travail et implication très limités ; un engagement et un comportement plus soutenus sont indispensables pour progresser.","Résultats insuffisants. Travail et implication très limités ; un effort sérieux et régulier est nécessaire pour progresser.","Résultats en deçà du potentiel. Investissement et attention insuffisants ; une évolution de l'attitude est nécessaire."],
+  9:["Dispensé. Inaptitude sur la période ayant limité la participation aux activités.","Résultats partiels en raison d'une inaptitude. Attitude sérieuse et investissement appréciables dans les conditions données.","Dispensé sur une partie de la période. Engagement et sérieux appréciables malgré la contrainte physique."],
+  10:["Très bons résultats. Travail sérieux et investi, avec une contribution positive au groupe et un excellent état d'esprit collectif.","Bons résultats. Travail sérieux et appliqué, avec investissement régulier et attitude favorable à la progression.","Excellents résultats. Rôle fédérateur et esprit collectif remarquable ayant contribué à la dynamique de groupe."],
+  11:["Excellents résultats. Implication exemplaire et esprit collectif remarquable. Moteur dans le groupe.","Très bons résultats. Travail sérieux et investi, avec dynamisme et contribution positive à l'ambiance de travail.","Excellents résultats. Engagement constant, esprit positif et rôle fédérateur ayant contribué à la réussite du groupe."]
+};
+
+const LYCEE_TEMPLATES = {
+  1:["L'élève fait preuve d'un sérieux exemplaire et d'un investissement total en EPS. Moteur au sein du groupe, il participe activement à toutes les activités et adopte une attitude irréprochable. Son engagement constant a permis un excellent semestre.","Elève sérieux et très investi. Moteur dans le groupe, son dynamisme et son excellent état d'esprit ont contribué activement aux activités. Excellent semestre. Bravo !","L'élève se distingue par son sérieux et son excellent état d'esprit collectif en EPS. Pleinement impliqué, il favorise l'entraide et contribue à une ambiance de travail positive. Excellent semestre.","L'élève est particulièrement investi en EPS. Son engagement, son sérieux et son rôle moteur au sein du groupe ont permis de réussir un excellent semestre. Félicitations !","Elève moteur et exemplaire. Son implication constante, son dynamisme et son excellent état d'esprit ont contribué à un semestre remarquable."],
+  2:["L'élève fait preuve de sérieux et d'investissement en EPS. Attentif aux consignes, il participe régulièrement et avec application. Très bon semestre.","Elève sérieux et appliqué. Son implication régulière et son respect des consignes ont contribué à un très bon semestre.","L'élève est autonome et motivé en EPS. Son engagement régulier et sa rigueur dans le travail ont permis d'atteindre de très bons résultats.","L'élève montre un sérieux constant en EPS. Sa participation active et son application dans les activités contribuent à un très bon semestre.","Elève investi et appliqué. Son engagement a permis un très bon semestre. Bravo !"],
+  3:["L'élève est sérieux et appliqué en EPS. Sa participation régulière et son respect des consignes contribuent à un semestre satisfaisant.","Elève sérieux. Son travail régulier et son attitude positive ont permis un semestre satisfaisant.","L'élève s'implique correctement en EPS. Il respecte les consignes et participe avec sérieux. Semestre satisfaisant.","L'élève adopte une attitude positive et appliquée. Son implication a contribué à un semestre satisfaisant.","Elève appliqué et régulier. Son sérieux constant a permis un semestre satisfaisant."],
+  4:["L'élève est discret mais sérieux en EPS. Il accomplit son travail avec application et participe régulièrement. Son sérieux est appréciable.","Elève discret mais appliqué. Sa participation calme et son travail soigné témoignent d'un sérieux appréciable.","L'élève adopte une attitude respectueuse et appliquée. Il contribue positivement au bon déroulement des activités. Son sérieux est notable.","L'élève est attentif et appliqué en EPS. Il réalise ses activités avec soin et régularité. Son sérieux est appréciable."],
+  5:["L'élève fait preuve de sérieux en EPS. Sa concentration reste cependant irrégulière. En renforçant son attention, il progresserait davantage.","Elève sérieux mais à la concentration fluctuante. Un effort d'écoute plus soutenu permettrait d'exploiter pleinement ses capacités.","L'élève s'investit en EPS mais a tendance à se disperser. En restant plus concentré sur les consignes, il améliorera son efficacité.","L'élève est sérieux mais sa concentration est irrégulière. Une attention plus soutenue lui permettrait de progresser davantage."],
+  6:["L'élève possède de bonnes capacités en EPS, mais son investissement reste irrégulier. En s'impliquant davantage, il pourrait tirer pleinement parti des activités.","Elève au potentiel réel mais à l'engagement variable. Une implication plus régulière lui permettrait de progresser efficacement.","L'élève montre de bonnes aptitudes en EPS. Son engagement parfois intermittent limite sa progression. Plus de régularité lui permettrait d'optimiser ses résultats.","L'élève a du potentiel en EPS mais son investissement fluctue. Une participation plus constante serait bénéfique."],
+  7:["L'élève est dynamique en EPS. Son énergie est un atout, mais une meilleure canalisation lui permettrait d'améliorer son efficacité.","Elève dynamique et enthousiaste. En concentrant son énergie sur les tâches demandées, il optimisera ses résultats.","L'élève participe avec dynamisme en EPS. En canalisant mieux son énergie et en restant focalisé sur les consignes, il progressera davantage.","L'élève est actif et peut devenir moteur du groupe. En concentrant son énergie, il améliorera son efficacité."],
+  8:["L'élève n'a pas pleinement exploité son potentiel en EPS. Un investissement et une attention insuffisants ont limité ses progrès. Une évolution de son attitude est nécessaire.","Elève dont l'implication reste insuffisante. Un engagement plus sérieux est indispensable pour progresser.","L'élève montre un investissement limité en EPS. Son attention aux consignes doit s'améliorer. Un effort régulier est nécessaire.","L'élève n'exploite pas pleinement ses capacités. Son implication est à renforcer pour permettre une réelle progression."],
+  9:["L'élève a fait preuve de sérieux en EPS. Une inaptitude sur la période a limité sa participation aux activités. Son engagement est apprécié.","Elève sérieux, dispensé sur une partie de la période. Son attitude reste appréciable malgré la contrainte.","L'élève a démontré un bon état d'esprit malgré une inaptitude physique sur la période. Son engagement est apprécié."],
+  10:["L'élève se distingue par son sérieux et son excellent état d'esprit collectif. Moteur dans le groupe, il contribue à une ambiance positive. Très bon semestre.","L'élève est moteur dans le groupe et démontre un excellent état d'esprit. Son engagement et son aide aux camarades sont très appréciés. Excellent semestre.","L'élève joue un rôle fédérateur en EPS. Sa participation active et son esprit collectif ont contribué à un excellent semestre."],
+  11:["L'élève fait preuve d'un excellent état d'esprit collectif. Moteur dans le groupe, il s'implique pleinement et favorise l'entraide. Excellent semestre.","Elève exemplaire, moteur du groupe. Son dynamisme, son sérieux et son esprit positif ont largement contribué à la réussite du semestre.","L'élève se distingue par son implication et son esprit positif. Il contribue à la dynamique du groupe et soutient ses camarades. Excellent semestre.","L'élève joue un rôle fédérateur remarquable. Son engagement constant et son excellent état d'esprit ont permis un semestre remarquable.","L'élève est moteur et volontaire. Il favorise l'entraide et encourage le groupe. Excellent semestre. Félicitations !"]
+};
+
+// ============================================================
+//  GENERATION ENGINE
+// ============================================================
+let usedTemplates = {};
+
+function getUniqueTemplate(pool, poolKey) {
+  if (!usedTemplates[poolKey]) usedTemplates[poolKey] = new Set();
+  const used = usedTemplates[poolKey];
+  if (used.size >= pool.length) used.clear();
+  let idx, tries = 0;
+  do { idx = Math.floor(Math.random() * pool.length); tries++; }
+  while (used.has(idx) && tries < pool.length * 3);
+  used.add(idx);
+  return pool[idx];
+}
+
+function generateApprSeconde(eleve, catId) {
+  const gender = eleve.sexe === 'F' ? 'F' : 'M';
+  const pool = (TEMPLATES[catId] || TEMPLATES[1])[gender];
+  const tpl = getUniqueTemplate(pool, `sec-${catId}-${gender}`);
+  const name = eleve.prenom || eleve.nom || 'L\'élève';
+  return tpl.replace(/^X\b/, name);
+}
+
+function generateApprSemestre(eleve, catId) {
+  const pool = LYCEE_TEMPLATES[catId] || LYCEE_TEMPLATES[1];
+  return getUniqueTemplate(pool, `lyc-sem-${catId}`);
+}
+
+function generateFicheAvenir(eleve, catId) {
+  const pool = FICHE_AVENIR[catId] || FICHE_AVENIR[1];
+  return getUniqueTemplate(pool, `lyc-fa-${catId}`);
+}
+
+// ============================================================
+//  FILE LOADING
+// ============================================================
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+}
+
+function loadFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      parseWorkbook(wb);
+      document.getElementById('uploadedBadge').style.display = 'inline-flex';
+      document.getElementById('uploadedBadge').textContent = '✓ ' + file.name;
+      await secureSet('filename', file.name);
+      showToast('✓ Fichier chargé : ' + file.name, 'success');
+    } catch(err) {
+      showToast('⚠ Erreur de lecture du fichier', 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseWorkbook(wb) {
+  const mainSheet = wb.Sheets['Appréciation'] || wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(mainSheet, { header: 1 });
+
+  let headerRow = -1;
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    if (rows[i] && rows[i].some(c => c && String(c).toLowerCase().includes('élève'))) { headerRow = i; break; }
+  }
+  if (headerRow === -1) headerRow = 0;
+
+  const headers = rows[headerRow] || [];
+  let colNom = -1, colSexe = -1, colPrenom = -1, colClasse = -1;
+  headers.forEach((h, i) => {
+    if (!h) return;
+    const s = String(h).toLowerCase();
+    if (s.includes('élève') || s.includes('nom')) colNom = i;
+    else if (s.includes('sexe')) colSexe = i;
+    else if (s.includes('prénom') || s.includes('prenom')) colPrenom = i;
+    else if (s.includes('classe')) colClasse = i;
+  });
+
+  allEleves = [];
+  for (let i = headerRow + 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || r.every(c => !c)) continue;
+    const nom = colNom >= 0 ? String(r[colNom] || '').trim() : '';
+    if (!nom) continue;
+    allEleves.push({
+      nom,
+      prenom:  colPrenom  >= 0 ? String(r[colPrenom]  || '').trim() : '',
+      sexe:   (colSexe    >= 0 ? String(r[colSexe]    || '').trim() : 'M').toUpperCase().startsWith('F') ? 'F' : 'M',
+      classe:  colClasse  >= 0 ? String(r[colClasse]  || '').trim() : '',
+      apprSeconde: '', apprSemestre: '', apprFicheAvenir: ''
+    });
+  }
+
+  const classes = [...new Set(allEleves.map(e => e.classe).filter(Boolean))].sort();
+  const sel = document.getElementById('classeFilter');
+  sel.innerHTML = '<option value="">Toutes les classes</option>';
+  classes.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+
+  applyFilters();
+  updateStats();
+}
+
+function applyFilters() {
+  const cv = document.getElementById('classeFilter').value;
+  const s  = document.getElementById('searchInput').value.toLowerCase();
+  filteredEleves = allEleves.filter(e =>
+    (!cv || e.classe === cv) &&
+    (!s  || e.nom.toLowerCase().includes(s) || e.prenom.toLowerCase().includes(s))
+  );
+  renderTables();
+  updateStats();
+}
+
+function isSeconde(e) { return e.classe && e.classe.toLowerCase().includes('2') && !e.classe.toLowerCase().includes('term') && !e.classe.toLowerCase().includes('1'); }
+function isLycee(e)   { return !isSeconde(e); }
+
+// ============================================================
+//  RENDER TABLES
+// ============================================================
+function renderTables() { renderSeconde(); renderLycee(); }
+
+function renderSeconde() {
+  const eleves = filteredEleves.filter(isSeconde);
+  const wrap = document.getElementById('tableWrapSeconde');
+  if (!eleves.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">👨‍🎓</div><h3>Aucun élève de Seconde</h3><p>${allEleves.length === 0 ? 'Importez votre fichier Excel pour commencer.' : 'Aucun élève de Seconde dans la sélection.'}</p></div>`;
+    return;
+  }
+  let html = `<div class="table-toolbar"><span class="table-title">Appréciations Seconde</span><span class="badge">${eleves.length} élèves</span><span class="badge badge-accent">${eleves.filter(e=>e.apprSeconde).length} générées</span><div style="margin-left:auto"><button class="btn btn-ghost" onclick="regenerateAll('seconde')">↻ Regénérer tout</button></div></div>
+  <table><thead><tr><th>#</th><th>Nom</th><th>Prénom</th><th>Sexe</th><th>Classe</th><th>Appréciation de semestre</th><th>Actions</th></tr></thead><tbody>`;
+  eleves.forEach((e, i) => {
+    const gi = allEleves.indexOf(e);
+    html += `<tr><td style="color:var(--text-faint)">${i+1}</td><td><strong>${e.nom}</strong></td><td>${e.prenom||'–'}</td><td><span class="chip chip-${e.sexe.toLowerCase()}">${e.sexe==='F'?'♀ F':'♂ M'}</span></td><td style="color:var(--text-muted)">${e.classe||'–'}</td>
+    <td class="appr-cell"><textarea class="appr-text" id="appr-sec-${gi}" placeholder="Cliquez sur Générer…" oninput="allEleves[${gi}].apprSeconde=this.value;debouncePersist()">${e.apprSeconde}</textarea>
+    <div class="appr-actions"><button class="btn btn-ghost" style="font-size:11px" onclick="regenOne(${gi},'seconde')">↻</button><button class="btn btn-ghost" style="font-size:11px" onclick="openAiModal(${gi},'seconde')">✨ IA</button></div></td>
+    <td><button class="btn btn-ghost" onclick="regenOne(${gi},'seconde')">↻</button><button class="btn btn-ghost" onclick="openAiModal(${gi},'seconde')">✨</button></td></tr>`;
+  });
+  html += `</tbody></table><div class="info-line">⚡ Chaque appréciation est unique · Genrée · Modifiable · Sauvegardée automatiquement</div>`;
+  wrap.innerHTML = html;
+}
+
+function renderLycee() {
+  const eleves = filteredEleves.filter(isLycee);
+  const wrap = document.getElementById('tableWrapLycee');
+  if (!eleves.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">🎓</div><h3>Aucun élève de 1ère / Terminale</h3><p>${allEleves.length === 0 ? 'Importez votre fichier Excel pour commencer.' : 'Aucun élève de 1ère/Terminale dans la sélection.'}</p></div>`;
+    return;
+  }
+  let html = `<div class="table-toolbar"><span class="table-title">Appréciations 1ère / Terminale</span><span class="badge">${eleves.length} élèves</span><span class="badge badge-accent">${eleves.filter(e=>e.apprSemestre).length} générées</span><div style="margin-left:auto"><button class="btn btn-ghost" onclick="regenerateAll('lycee')">↻ Regénérer tout</button></div></div>
+  <table><thead><tr><th>#</th><th>Nom</th><th>Sexe</th><th>Classe</th><th>Appréciation semestre</th><th>Fiche Avenir</th><th>Actions</th></tr></thead><tbody>`;
+  eleves.forEach((e, i) => {
+    const gi = allEleves.indexOf(e);
+    html += `<tr><td style="color:var(--text-faint)">${i+1}</td><td><strong>${e.nom}</strong></td><td><span class="chip chip-${e.sexe.toLowerCase()}">${e.sexe==='F'?'♀ F':'♂ M'}</span></td><td style="color:var(--text-muted)">${e.classe||'–'}</td>
+    <td class="appr-cell"><textarea class="appr-text" id="appr-sem-${gi}" placeholder="Appréciation semestre…" oninput="allEleves[${gi}].apprSemestre=this.value;debouncePersist()">${e.apprSemestre}</textarea>
+    <div class="appr-actions"><button class="btn btn-ghost" style="font-size:11px" onclick="regenOne(${gi},'semestre')">↻</button><button class="btn btn-ghost" style="font-size:11px" onclick="openAiModal(${gi},'semestre')">✨ IA</button></div></td>
+    <td class="appr-cell"><textarea class="appr-text" id="appr-fa-${gi}" placeholder="Fiche Avenir…" oninput="allEleves[${gi}].apprFicheAvenir=this.value;debouncePersist()">${e.apprFicheAvenir}</textarea>
+    <div class="appr-actions"><button class="btn btn-ghost" style="font-size:11px" onclick="regenOne(${gi},'ficheAvenir')">↻</button><button class="btn btn-ghost" style="font-size:11px" onclick="openAiModal(${gi},'ficheAvenir')">✨ IA</button></div></td>
+    <td><button class="btn btn-ghost" onclick="regenOne(${gi},'semestre')">↻</button><button class="btn btn-ghost" onclick="openAiModal(${gi},'semestre')">✨</button></td></tr>`;
+  });
+  html += `</tbody></table><div class="info-line">🔒 Masculin neutre · Anonyme · Commence par "L'élève…" · Sauvegardé automatiquement</div>`;
+  wrap.innerHTML = html;
+}
+
+// ============================================================
+//  DEBOUNCED PERSIST  (save to encrypted LS on every edit)
+// ============================================================
+let _persistTimer = null;
+function debouncePersist() {
+  clearTimeout(_persistTimer);
+  _persistTimer = setTimeout(() => persistData(), 800);
+}
+
+// ============================================================
+//  GENERATE / CLEAR
+// ============================================================
+async function generateAll() {
+  if (!allEleves.length) { showToast('⚠ Aucun élève chargé.', 'error'); return; }
+  const catId = parseInt(document.getElementById('categorySelect').value);
+  filteredEleves.forEach(e => {
+    const gi = allEleves.indexOf(e);
+    if (isSeconde(e)) allEleves[gi].apprSeconde = generateApprSeconde(e, catId);
+    else { allEleves[gi].apprSemestre = generateApprSemestre(e, catId); allEleves[gi].apprFicheAvenir = generateFicheAvenir(e, catId); }
+  });
+  await persistData();
+  renderTables(); updateStats();
+  showToast(`✓ ${filteredEleves.length} appréciations générées`, 'success');
+}
+
+async function regenerateAll(pane) {
+  const catId = parseInt(document.getElementById('categorySelect').value);
+  Object.keys(usedTemplates).filter(k => k.startsWith(pane==='seconde'?'sec':'lyc')).forEach(k => delete usedTemplates[k]);
+  filteredEleves.forEach(e => {
+    const gi = allEleves.indexOf(e);
+    if (pane==='seconde' && isSeconde(e)) allEleves[gi].apprSeconde = generateApprSeconde(e, catId);
+    else if (pane==='lycee' && isLycee(e)) { allEleves[gi].apprSemestre = generateApprSemestre(e, catId); allEleves[gi].apprFicheAvenir = generateFicheAvenir(e, catId); }
+  });
+  await persistData();
+  renderTables(); updateStats();
+  showToast('↻ Appréciations regénérées', 'success');
+}
+
+async function regenOne(gi, type) {
+  const e = allEleves[gi];
+  const catId = parseInt(document.getElementById('categorySelect').value);
+  if (type==='seconde')     { allEleves[gi].apprSeconde = generateApprSeconde(e, catId); const el = document.getElementById(`appr-sec-${gi}`); if(el){el.value=allEleves[gi].apprSeconde;flash(el);} }
+  else if (type==='semestre')   { allEleves[gi].apprSemestre = generateApprSemestre(e, catId); const el = document.getElementById(`appr-sem-${gi}`); if(el){el.value=allEleves[gi].apprSemestre;flash(el);} }
+  else if (type==='ficheAvenir') { allEleves[gi].apprFicheAvenir = generateFicheAvenir(e, catId); const el = document.getElementById(`appr-fa-${gi}`); if(el){el.value=allEleves[gi].apprFicheAvenir;flash(el);} }
+  await persistData(); updateStats();
+}
+
+function flash(el) { el.classList.add('just-generated'); setTimeout(()=>el.classList.remove('just-generated'),1000); }
+
+async function clearAll() {
+  allEleves.forEach(e => { e.apprSeconde=''; e.apprSemestre=''; e.apprFicheAvenir=''; });
+  await persistData();
+  renderTables(); updateStats();
+  showToast('🗑 Appréciations effacées', 'success');
+}
+
+// ============================================================
+//  STATS
+// ============================================================
+function updateStats() {
+  const s = allEleves.filter(isSeconde), l = allEleves.filter(isLycee);
+  document.getElementById('nSeconde').textContent      = s.length || '–';
+  document.getElementById('nSecGenerated').textContent = s.filter(e=>e.apprSeconde).length || '–';
+  document.getElementById('nLycee').textContent        = l.length || '–';
+  document.getElementById('nLycGenerated').textContent = l.filter(e=>e.apprSemestre).length || '–';
+}
+
+// ============================================================
+//  AI MODAL
+// ============================================================
+function openAiModal(gi, field) {
+  aiTargetIdx = gi; aiTargetField = field;
+  const e = allEleves[gi];
+  const cur = field==='seconde'?e.apprSeconde:field==='semestre'?e.apprSemestre:e.apprFicheAvenir;
+  document.getElementById('aiCurrentText').textContent = cur || '(Aucune appréciation générée)';
+  document.getElementById('aiKeywords').value = '';
+  document.getElementById('aiResult').classList.remove('visible');
+  document.getElementById('aiApplyBtn').style.display = 'none';
+  document.getElementById('aiSpinner').style.display = 'none';
+  aiSuggestion = '';
+  document.getElementById('aiModal').classList.add('open');
+}
+
+function closeAiModal() { document.getElementById('aiModal').classList.remove('open'); aiTargetIdx=null; aiTargetField=null; }
+
+async function callAI() {
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
+  const keywords = document.getElementById('aiKeywords').value.trim();
+  const e = allEleves[aiTargetIdx];
+  const current = aiTargetField==='seconde'?e.apprSeconde:aiTargetField==='semestre'?e.apprSemestre:e.apprFicheAvenir;
+
+  const btn = document.getElementById('aiGenerateBtn');
+  document.getElementById('aiSpinner').style.display = 'inline-block';
+  btn.disabled = true;
+
+  const isSec = aiTargetField==='seconde', isFA = aiTargetField==='ficheAvenir';
+  const systemPrompt = `Tu es un professeur d'EPS. Tu reformules des appréciations scolaires en suivant strictement ces règles :
+1. ${isSec ? `L'élève est ${e.sexe==='F'?'une fille':'un garçon'}. Accorder en conséquence.` : 'Toujours au masculin.'}
+2. ${isSec ? `Commencer avec le prénom "${e.prenom||e.nom}".` : 'Ne jamais mentionner le nom/prénom. Commencer par "L\'élève" ou "Elève".'}
+3. ${isFA ? 'Ton neutre et institutionnel.' : 'Ton scolaire et bienveillant.'}
+4. Maximum 3 phrases. Pas de markdown. Réponds UNIQUEMENT avec l'appréciation.`;
+  const userPrompt = `Appréciation actuelle : "${current}"\nInstructions : ${keywords||'Reformuler avec plus de variété'}\nGénère une appréciation améliorée.`;
+
+  try {
+    let result = '';
+    if (apiKey) {
+      const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}`, 'HTTP-Referer': window.location.href, 'X-Title': 'EPS Appréciation Generator' },
+        body: JSON.stringify({ model: 'mistralai/mistral-7b-instruct:free', messages: [{role:'system',content:systemPrompt},{role:'user',content:userPrompt}], max_tokens: 200, temperature: 0.8 })
+      });
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error.message);
+      result = data.choices?.[0]?.message?.content?.trim() || '';
+    }
+    if (!result) throw new Error('empty');
+    aiSuggestion = result;
+  } catch {
+    aiSuggestion = aiTargetField==='seconde' ? generateApprSeconde(e, parseInt(document.getElementById('categorySelect').value))
+                 : aiTargetField==='semestre'  ? generateApprSemestre(e, parseInt(document.getElementById('categorySelect').value))
+                 : generateFicheAvenir(e, parseInt(document.getElementById('categorySelect').value));
+    if (apiKey) showToast('⚠ API indisponible, génération locale utilisée', 'error');
+  }
+
+  document.getElementById('aiResultText').textContent = aiSuggestion;
+  document.getElementById('aiResult').classList.add('visible');
+  document.getElementById('aiApplyBtn').style.display = 'inline-flex';
+  document.getElementById('aiSpinner').style.display = 'none';
+  btn.disabled = false;
+}
+
+async function applyAI() {
+  if (!aiSuggestion || aiTargetIdx === null) return;
+  const field = aiTargetField, gi = aiTargetIdx;
+  allEleves[gi][field==='seconde'?'apprSeconde':field==='semestre'?'apprSemestre':'apprFicheAvenir'] = aiSuggestion;
+  const sel = field==='seconde'?`appr-sec-${gi}`:field==='semestre'?`appr-sem-${gi}`:`appr-fa-${gi}`;
+  const el = document.getElementById(sel);
+  if (el) { el.value = aiSuggestion; flash(el); }
+  await persistData();
+  closeAiModal();
+  showToast('✓ Appréciation mise à jour', 'success');
+}
+
+// ============================================================
+//  EXPORT
+// ============================================================
+function exportExcel() {
+  if (!allEleves.length) { showToast('⚠ Aucune donnée à exporter', 'error'); return; }
+  const wb = XLSX.utils.book_new();
+  const wsS = XLSX.utils.aoa_to_sheet([['Élève','Prénom','Classe','Sexe','Appréciation semestre'],...allEleves.filter(isSeconde).map(e=>[e.nom,e.prenom,e.classe,e.sexe,e.apprSeconde])]);
+  wsS['!cols'] = [{wch:20},{wch:16},{wch:12},{wch:6},{wch:80}];
+  XLSX.utils.book_append_sheet(wb, wsS, 'Seconde');
+  const wsL = XLSX.utils.aoa_to_sheet([['Élève','Classe','Sexe','Appréciation semestre','Fiche Avenir'],...allEleves.filter(isLycee).map(e=>[e.nom,e.classe,e.sexe,e.apprSemestre,e.apprFicheAvenir])]);
+  wsL['!cols'] = [{wch:20},{wch:12},{wch:6},{wch:80},{wch:80}];
+  XLSX.utils.book_append_sheet(wb, wsL, '1ère-Terminale');
+  const wsA = XLSX.utils.aoa_to_sheet([['Élève','Prénom','Classe','Sexe','Appréciation semestre','Fiche Avenir'],...allEleves.map(e=>[e.nom,e.prenom,e.classe,e.sexe,isSeconde(e)?e.apprSeconde:e.apprSemestre,e.apprFicheAvenir||''])]);
+  wsA['!cols'] = [{wch:20},{wch:16},{wch:12},{wch:6},{wch:80},{wch:80}];
+  XLSX.utils.book_append_sheet(wb, wsA, 'Export PRONOTE');
+  XLSX.writeFile(wb, `Appreciations_EPS_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast('↓ Export Excel généré', 'success');
+}
+
+// ============================================================
+//  UI HELPERS
+// ============================================================
+function switchPane(pane) {
+  currentPane = pane;
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('pane-' + pane).classList.add('active');
+  const tabs = document.querySelectorAll('.tab');
+  tabs[0].classList.remove('active-seconde','active-lycee');
+  tabs[1].classList.remove('active-seconde','active-lycee');
+  if (pane==='seconde') tabs[0].classList.add('active-seconde');
+  else tabs[1].classList.add('active-lycee');
+}
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast '+type+' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+document.getElementById('aiModal').addEventListener('click', function(e) { if (e.target===this) closeAiModal(); });
+
+// ============================================================
+//  BOOT — check session on load
+// ============================================================
+(async () => {
+  const ok = await checkSession();
+  if (ok) await bootApp();
+  else document.getElementById('pwdInput').focus();
+})();
+</script>
+</body>
+</html>
