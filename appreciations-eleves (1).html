@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Générateur d'Appréciations EPS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg:#0f0f13; --surface:#17171e; --surface2:#1e1e28; --surface3:#252530;
+  --border:#2e2e3d; --accent:#7c6af7; --accent2:#a78bfa;
+  --accent-glow:rgba(124,106,247,0.15);
+  --green:#4ade80; --red:#f87171; --blue:#60a5fa; --yellow:#fbbf24;
+  --pink:#f472b6;
+  --text:#e8e8f0; --muted:#7a7a95; --faint:#4a4a5e;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 20%,rgba(124,106,247,.06),transparent 60%),radial-gradient(ellipse at 80% 80%,rgba(244,114,182,.04),transparent 60%);pointer-events:none;z-index:0;}
+
+/* ── LOGIN ── */
+#loginScreen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:var(--bg);}
+.lcard{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:48px 44px;width:400px;max-width:92vw;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.6);animation:fadeUp .4s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.llogo{width:64px;height:64px;background:linear-gradient(135deg,var(--accent),var(--pink));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 22px;box-shadow:0 8px 32px rgba(124,106,247,.35);}
+.lcard h2{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:6px;}
+.lcard p{font-size:13px;color:var(--muted);margin-bottom:32px;line-height:1.5;}
+.lfield{position:relative;margin-bottom:16px;}
+.lfield input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px 44px 13px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;text-align:center;letter-spacing:2px;transition:border-color .2s,box-shadow .2s;}
+.lfield input::placeholder{letter-spacing:0;color:var(--faint);}
+.lfield input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+.lfield input.err{border-color:var(--red);animation:shake .35s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--faint);font-size:16px;}
+.lerr{font-size:12px;color:var(--red);margin-bottom:14px;min-height:18px;}
+.lbtn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 6px 24px rgba(124,106,247,.35);display:flex;align-items:center;justify-content:center;gap:8px;}
+.lbtn:hover{background:var(--accent2);transform:translateY(-1px);}
+.lbtn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.lfooter{margin-top:24px;font-size:11px;color:var(--faint);display:flex;align-items:center;justify-content:center;gap:6px;}
+
+/* ── APP SHELL ── */
+#app{display:none;}
+
+/* ── HEADER ── */
+header{position:relative;z-index:10;padding:20px 32px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border);background:var(--surface);}
+.hlogo{width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--pink));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 4px 20px rgba(124,106,247,.3);}
+header h1{font-family:'DM Serif Display',serif;font-size:20px;letter-spacing:-.3px;}
+header p{font-size:11px;color:var(--muted);margin-top:1px;}
+.hright{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.tabs{display:flex;gap:0;}
+.tab{padding:8px 20px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--muted);border-bottom:3px solid transparent;transition:all .2s;font-family:'DM Sans',sans-serif;}
+.tab:hover{color:var(--text);}
+.tab.ts{color:var(--accent);border-bottom-color:var(--accent);}
+.tab.tl{color:var(--pink);border-bottom-color:var(--pink);}
+.sbadge{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--faint);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;}
+.sdot{width:6px;height:6px;background:var(--green);border-radius:50%;box-shadow:0 0 6px var(--green);}
+.logoutbtn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;}
+.logoutbtn:hover{border-color:var(--red);color:var(--red);}
+
+/* ── LAYOUT ── */
+.layout{position:relative;z-index:1;display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 68px);}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:20px 16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;}
+.slabel{font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint);margin-bottom:6px;}
+.upzone{border:2px dashed var(--border);border-radius:12px;padding:22px 12px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2);}
+.upzone:hover,.upzone.dragover{border-color:var(--accent);background:var(--accent-glow);}
+.upzone .uicon{font-size:24px;margin-bottom:6px;}
+.upzone p{font-size:12px;color:var(--muted);}
+.upzone small{font-size:11px;color:var(--faint);}
+#fileInput{display:none;}
+.ubadge{display:inline-flex;align-items:center;gap:5px;background:rgba(74,222,128,.1);color:var(--green);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500;margin-top:6px;}
+
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;}
+select,input[type=text],input[type=password]{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 11px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;transition:border-color .2s;appearance:none;}
+select:focus,input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+.sw{position:relative;}
+.sw::after{content:'▾';position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:11px;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-p{background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(124,106,247,.3);}
+.btn-p:hover{background:var(--accent2);transform:translateY(-1px);}
+.btn-g{background:rgba(74,222,128,.15);color:var(--green);border:1px solid rgba(74,222,128,.3);}
+.btn-g:hover{background:rgba(74,222,128,.25);}
+.btn-o{background:transparent;border:1px solid var(--border);color:var(--muted);}
+.btn-o:hover{border-color:var(--accent);color:var(--text);}
+.btn-gh{background:transparent;color:var(--muted);padding:5px 8px;font-size:12px;}
+.btn-gh:hover{color:var(--text);background:var(--surface2);border-radius:5px;}
+.btn-pk{background:rgba(244,114,182,.15);color:var(--pink);border:1px solid rgba(244,114,182,.3);}
+.btn-pk:hover{background:rgba(244,114,182,.25);}
+.bfull{width:100%;}
+.divider{height:1px;background:var(--border);margin:2px 0;}
+
+/* IMPORT BUTTON (big CTA after file loaded) */
+.import-cta{background:linear-gradient(135deg,var(--accent),var(--pink));color:#fff;border:none;border-radius:10px;padding:12px 16px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 20px rgba(124,106,247,.3);transition:all .2s;}
+.import-cta:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(124,106,247,.4);}
+.import-cta:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+/* ── MAIN ── */
+.main{padding:24px 28px;overflow-y:auto;}
+.pane{display:none;}
+.pane.active{display:block;}
+
+/* PANE HEADER */
+.ph{margin-bottom:20px;}
+.ph h2{font-family:'DM Serif Display',serif;font-size:21px;letter-spacing:-.3px;display:flex;align-items:center;gap:10px;}
+.ph p{font-size:13px;color:var(--muted);margin-top:4px;}
+.ptag{display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.ptag-s{background:rgba(124,106,247,.1);color:var(--accent2);border:1px solid rgba(124,106,247,.2);}
+.ptag-l{background:rgba(244,114,182,.1);color:var(--pink);border:1px solid rgba(244,114,182,.2);}
+
+/* STATS ROW */
+.srow{display:flex;gap:10px;margin-bottom:18px;}
+.sc{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.sc .num{font-family:'DM Serif Display',serif;font-size:26px;color:var(--text);line-height:1;}
+.sc .lbl{font-size:11px;color:var(--muted);margin-top:3px;}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:60px 30px;color:var(--muted);}
+.empty .ei{font-size:44px;margin-bottom:14px;opacity:.4;}
+.empty h3{font-family:'DM Serif Display',serif;font-size:18px;color:var(--text);margin-bottom:6px;}
+.empty p{font-size:13px;line-height:1.6;}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.toolbar-sep{flex:1;}
+.badge{background:var(--surface3);color:var(--muted);border-radius:20px;padding:2px 9px;font-size:11px;}
+.badge-a{background:var(--accent-glow);color:var(--accent2);border:1px solid rgba(124,106,247,.2);}
+
+/* SEARCH / FILTER BAR */
+.filterbar{display:flex;gap:8px;margin-bottom:14px;align-items:center;}
+.filterbar input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 11px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;}
+.filterbar input:focus{outline:none;border-color:var(--accent);}
+.filterbar select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 28px 8px 11px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;appearance:none;width:180px;}
+.fsw{position:relative;}
+.fsw::after{content:'▾';position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:11px;}
+
+/* STUDENT CARDS */
+.cards-grid{display:flex;flex-direction:column;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+
+.scard{background:var(--surface);border-bottom:1px solid var(--border);transition:background .15s;}
+.scard:last-child{border-bottom:none;}
+.scard:hover{background:var(--surface2);}
+
+.scard-top{display:grid;grid-template-columns:44px 1fr 200px 240px auto;align-items:center;gap:12px;padding:12px 16px;}
+
+.scard-num{font-size:12px;color:var(--faint);text-align:center;font-weight:500;}
+
+.scard-name{display:flex;flex-direction:column;gap:2px;}
+.scard-name strong{font-size:14px;font-weight:600;color:var(--text);}
+.scard-name span{font-size:12px;color:var(--muted);}
+
+.chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;}
+.chip-m{background:rgba(96,165,250,.12);color:var(--blue);}
+.chip-f{background:rgba(244,114,182,.12);color:var(--pink);}
+.chip-c{background:var(--surface3);color:var(--muted);font-size:11px;}
+
+.scard-cat{display:flex;flex-direction:column;gap:4px;}
+.scard-cat label{font-size:11px;color:var(--faint);margin:0;}
+.cat-select{background:var(--surface3);border:1px solid var(--border);border-radius:7px;padding:6px 24px 6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;appearance:none;width:100%;cursor:pointer;}
+.cat-select:focus{outline:none;border-color:var(--accent);}
+.csw{position:relative;}
+.csw::after{content:'▾';position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:10px;}
+
+.scard-actions{display:flex;gap:6px;align-items:center;}
+
+/* APPRECIATION AREA (expanded) */
+.scard-appr{display:none;padding:0 16px 14px;border-top:1px solid var(--border);}
+.scard-appr.open{display:block;}
+.appr-block{margin-top:12px;}
+.appr-label{font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.appr-label .al-tag{background:var(--surface3);border-radius:4px;padding:1px 7px;font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0;}
+textarea.appr-ta{width:100%;min-height:72px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.65;resize:vertical;transition:border-color .2s;}
+textarea.appr-ta:focus{outline:none;border-color:var(--accent);background:var(--surface3);}
+.appr-row{display:flex;gap:6px;margin-top:6px;}
+
+/* STATUS INDICATOR */
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.sd-done{background:var(--green);box-shadow:0 0 6px var(--green);}
+.sd-empty{background:var(--border);}
+
+/* GENERATE ALL FLOATING BAR */
+.gen-bar{position:sticky;top:0;z-index:50;background:rgba(15,15,19,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:10px 28px;display:flex;align-items:center;gap:10px;margin:-24px -28px 20px;}
+.gen-bar p{font-size:13px;color:var(--muted);}
+.gen-bar strong{color:var(--text);}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 16px;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px;z-index:2000;transform:translateY(80px);opacity:0;transition:all .3s;box-shadow:0 10px 30px rgba(0,0,0,.4);}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-left:3px solid var(--green);}
+.toast.error{border-left:3px solid var(--red);}
+
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center;}
+.modal-ov.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px;width:500px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:mIn .2s ease;}
+@keyframes mIn{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal h3{font-family:'DM Serif Display',serif;font-size:17px;margin-bottom:5px;}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:18px;}
+.mcur{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:10px;font-size:12.5px;line-height:1.6;color:var(--muted);margin-bottom:14px;max-height:90px;overflow-y:auto;}
+.modal textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;resize:vertical;min-height:58px;}
+.modal textarea:focus{outline:none;border-color:var(--accent);}
+.mfooter{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
+.ai-res{margin-top:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px;font-size:13px;line-height:1.6;display:none;}
+.ai-res.vis{display:block;}
+.ai-lbl{font-size:11px;color:var(--accent2);font-weight:600;margin-bottom:5px;}
+.api-section{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;}
+.api-section details summary{cursor:pointer;font-size:12px;color:var(--muted);user-select:none;}
+.api-section details[open] summary{color:var(--text);margin-bottom:10px;}
+
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid transparent;border-top-color:currentColor;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@keyframes flash{0%,100%{background:transparent}30%{background:rgba(74,222,128,.07)}}
+.flashed{animation:flash 1s ease;}
+
+/* IMPORT PREVIEW MODAL */
+.prev-modal{width:620px;}
+.prev-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px;max-height:300px;display:block;overflow-y:auto;}
+.prev-table th{background:var(--surface3);padding:7px 10px;text-align:left;font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.7px;position:sticky;top:0;}
+.prev-table td{padding:6px 10px;border-bottom:1px solid var(--border);}
+.prev-table tr:last-child td{border-bottom:none;}
+.col-sel-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.col-info{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
+.col-info label{font-size:11px;color:var(--faint);margin-bottom:5px;display:block;}
+
+/* Progress */
+.prog-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:6px;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--pink));transition:width .3s;}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════ LOGIN ═══════════ -->
+<div id="loginScreen">
+  <div class="lcard">
+    <div class="llogo">🏃</div>
+    <h2>Appréciations EPS</h2>
+    <p>Accès sécurisé · Entrez le mot de passe<br>pour accéder à l'application.</p>
+    <div class="lfield">
+      <input type="password" id="pwdIn" placeholder="Mot de passe"
+             onkeydown="if(event.key==='Enter')tryLogin()" oninput="clearLE()" autocomplete="off" spellcheck="false">
+      <button class="eye" onclick="toggleEye()" type="button">👁</button>
+    </div>
+    <div class="lerr" id="lerr"></div>
+    <button class="lbtn" onclick="tryLogin()" id="lbtn">
+      <span id="lsp" class="spinner" style="display:none"></span> Accéder
+    </button>
+    <div class="lfooter">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Session chiffrée · Données isolées
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ AI MODAL ═══════════ -->
+<div class="modal-ov" id="aiModal">
+  <div class="modal">
+    <h3>✨ Améliorer avec l'IA</h3>
+    <p>Décrivez ce que vous souhaitez modifier ou améliorer.</p>
+    <div class="mcur" id="aiCur"></div>
+    <label for="aiKw">Instructions</label>
+    <textarea id="aiKw" rows="2" placeholder="Ex : plus d'encouragement, insister sur les progrès…"></textarea>
+    <div class="ai-res" id="aiRes"><div class="ai-lbl">✦ Suggestion</div><p id="aiResT"></p></div>
+    <div class="mfooter">
+      <button class="btn btn-o" onclick="closeAI()">Annuler</button>
+      <button class="btn btn-p" id="aiBtnGen" onclick="callAI()"><span id="aiSp" class="spinner" style="display:none"></span>Générer</button>
+      <button class="btn btn-g" id="aiBtnApp" onclick="applyAI()" style="display:none">✓ Appliquer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ IMPORT PREVIEW MODAL ═══════════ -->
+<div class="modal-ov" id="prevModal">
+  <div class="modal prev-modal">
+    <h3>📊 Aperçu du fichier importé</h3>
+    <p>Vérifiez la correspondance des colonnes puis cliquez sur <strong>Importer les élèves</strong>.</p>
+    <div class="col-sel-grid" id="colSelGrid"></div>
+    <div id="prevTableWrap"></div>
+    <div class="mfooter">
+      <button class="btn btn-o" onclick="closePrev()">Annuler</button>
+      <button class="btn btn-p" id="prevImportBtn" onclick="confirmImport()">✓ Importer les élèves</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ APP ═══════════ -->
+<div id="app">
+
+<header>
+  <div class="hlogo">🏃</div>
+  <div>
+    <h1>Appréciations EPS</h1>
+    <p>Générateur automatique · Conforme PRONOTE</p>
+  </div>
+  <div class="hright">
+    <div class="tabs">
+      <button class="tab ts" id="tabS" onclick="switchPane('s')">Seconde</button>
+      <button class="tab" id="tabL" onclick="switchPane('l')">1ère / Terminale</button>
+    </div>
+    <div class="sbadge"><span class="sdot"></span><span id="sessionLbl">Session active</span></div>
+    <button class="logoutbtn" onclick="logout()">⎋ Déconnexion</button>
+  </div>
+</header>
+
+<div class="layout">
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+
+  <div>
+    <div class="slabel">📂 Fichier élèves</div>
+    <div class="upzone" id="upZone"
+         onclick="document.getElementById('fileInput').click()"
+         ondragover="event.preventDefault();this.classList.add('dragover')"
+         ondragleave="this.classList.remove('dragover')"
+         ondrop="handleDrop(event)">
+      <div class="uicon">📊</div>
+      <p>Glissez votre Excel ici</p>
+      <small>ou cliquez pour parcourir</small>
+      <div id="ubadge" style="display:none" class="ubadge">✓ Fichier chargé</div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="readFile(this.files[0])">
+  </div>
+
+  <div class="divider"></div>
+
+  <div>
+    <div class="slabel">🎓 Filtres</div>
+    <label>Classe</label>
+    <div class="sw">
+      <select id="classFlt" onchange="applyFilters()">
+        <option value="">Toutes les classes</option>
+      </select>
+    </div>
+    <div style="margin-top:8px">
+      <label>Recherche rapide</label>
+      <input type="text" id="searchFlt" placeholder="Nom ou prénom…" oninput="applyFilters()">
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div>
+    <div class="slabel">⚡ Actions globales</div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <button class="btn btn-p bfull" onclick="genAllVisible()">⚡ Générer toutes les appréciations</button>
+      <button class="btn btn-o bfull" onclick="clearAllVisible()">🗑 Effacer les appréciations</button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div>
+    <div class="slabel">📤 Export</div>
+    <button class="btn btn-g bfull" onclick="exportXLSX()">↓ Exporter en Excel (PRONOTE)</button>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="api-section">
+    <details>
+      <summary>🤖 Configuration IA (optionnel)</summary>
+      <label style="margin-top:8px">Clé OpenRouter (gratuit)</label>
+      <input type="password" id="apiKey" placeholder="sk-or-v1-…">
+      <small style="color:var(--faint);font-size:11px;display:block;margin-top:5px">Clé gratuite sur <strong>openrouter.ai</strong></small>
+    </details>
+  </div>
+
+</aside>
+
+<!-- ── MAIN ── -->
+<main class="main" id="mainArea">
+
+  <!-- SECONDE PANE -->
+  <div class="pane active" id="paneS">
+    <div class="gen-bar" id="genBarS" style="display:none">
+      <p>Fichier chargé · <strong id="gbCountS">0</strong> élèves de Seconde détectés</p>
+      <div style="flex:1"></div>
+      <button class="btn btn-p" onclick="genAllVisible()">⚡ Générer toutes les appréciations</button>
+    </div>
+    <div class="ph">
+      <h2>Espace Seconde <span class="ptag ptag-s">Genré · Avec prénom</span></h2>
+      <p>Appréciation de semestre genrée (M/F), avec le prénom de l'élève.</p>
+    </div>
+    <div class="srow">
+      <div class="sc"><div class="num" id="nS">–</div><div class="lbl">Élèves Seconde</div></div>
+      <div class="sc"><div class="num" id="nSg">–</div><div class="lbl">Appréciations générées</div></div>
+      <div class="sc"><div class="num" id="nSp">–</div><div class="lbl">En attente</div></div>
+    </div>
+    <div id="wrapS">
+      <div class="empty"><div class="ei">📋</div><h3>Aucun élève de Seconde</h3><p>Importez votre fichier Excel,<br>puis cliquez sur <strong>Importer les élèves</strong>.</p></div>
+    </div>
+  </div>
+
+  <!-- LYCÉE PANE -->
+  <div class="pane" id="paneL">
+    <div class="gen-bar" id="genBarL" style="display:none">
+      <p>Fichier chargé · <strong id="gbCountL">0</strong> élèves de 1ère / Terminale détectés</p>
+      <div style="flex:1"></div>
+      <button class="btn btn-pk" onclick="genAllVisible()">⚡ Générer toutes les appréciations</button>
+    </div>
+    <div class="ph">
+      <h2>Espace 1ère / Terminale <span class="ptag ptag-l">Masculin neutre · Anonyme</span></h2>
+      <p>Appréciation semestre + Fiche Avenir. Toujours au masculin, sans nom/prénom. Commence par "L'élève…"</p>
+    </div>
+    <div class="srow">
+      <div class="sc"><div class="num" id="nL">–</div><div class="lbl">Élèves 1ère/Term</div></div>
+      <div class="sc"><div class="num" id="nLg">–</div><div class="lbl">Appréciations générées</div></div>
+      <div class="sc"><div class="num" id="nLp">–</div><div class="lbl">En attente</div></div>
+    </div>
+    <div id="wrapL">
+      <div class="empty"><div class="ei">🎓</div><h3>Aucun élève de 1ère / Terminale</h3><p>Importez votre fichier Excel,<br>puis cliquez sur <strong>Importer les élèves</strong>.</p></div>
+    </div>
+  </div>
+
+</main>
+</div>
+</div><!-- /app -->
+
+<script>
+// ══════════════════════════════════════════════════════
+//  SECURITY
+// ══════════════════════════════════════════════════════
+const _H=[0x34,0x50,0x75,0x85,0x05,0xbe,0x67,0x7f,0x5c,0xe6,0xdd,0x93,0x4c,0x47,0xdd,0xb7,
+          0x19,0xac,0xce,0xf6,0xb1,0x05,0x4d,0x19,0xe1,0x08,0xef,0x22,0x4a,0x6e,0xe4,0xdd];
+const _SK='_eps_s3',_LP='_eps_d2_',_EX=8*3600000;
+let _tok=null,_key=null;
+
+async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b));}
+async function deriveKey(t){const r=new TextEncoder().encode(t+'_eps_v2');const b=await crypto.subtle.importKey('raw',r,'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt:new TextEncoder().encode('eps_s24'),iterations:100000,hash:'SHA-256'},b,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
+async function enc(k,p){const iv=crypto.getRandomValues(new Uint8Array(12));const e=await crypto.subtle.encrypt({name:'AES-GCM',iv},k,new TextEncoder().encode(p));const c=new Uint8Array(iv.byteLength+e.byteLength);c.set(iv);c.set(new Uint8Array(e),iv.byteLength);return btoa(String.fromCharCode(...c));}
+async function dec(k,b){try{const c=Uint8Array.from(atob(b),x=>x.charCodeAt(0));const d=await crypto.subtle.decrypt({name:'AES-GCM',iv:c.slice(0,12)},k,c.slice(12));return new TextDecoder().decode(d);}catch{return null;}}
+async function sSet(s,d){if(!_key||!_tok)return;try{localStorage.setItem(_LP+_tok+'_'+s,await enc(_key,JSON.stringify(d)));}catch{}}
+async function sGet(s){if(!_key||!_tok)return null;try{const r=localStorage.getItem(_LP+_tok+'_'+s);if(!r)return null;const j=await dec(_key,r);return j?JSON.parse(j):null;}catch{return null;}}
+function cleanLS(){if(!_tok)return;Object.keys(localStorage).filter(k=>k.startsWith(_LP+_tok)).forEach(k=>localStorage.removeItem(k));}
+function genTok(){const a=crypto.getRandomValues(new Uint8Array(24));return btoa(String.fromCharCode(...a)).replace(/[+/=]/g,'');}
+
+async function tryLogin(){
+  const v=document.getElementById('pwdIn').value;
+  if(!v){lerr('Entrez le mot de passe.');return;}
+  const btn=document.getElementById('lbtn'),sp=document.getElementById('lsp');
+  btn.disabled=true;sp.style.display='inline-block';
+  await new Promise(r=>setTimeout(r,400+Math.random()*200));
+  const d=await sha256(v);
+  if(d.length!==_H.length||!d.every((b,i)=>b===_H[i])){
+    sp.style.display='none';btn.disabled=false;
+    lerr('Mot de passe incorrect.');
+    const f=document.getElementById('pwdIn');f.classList.add('err');f.value='';
+    setTimeout(()=>f.classList.remove('err'),600);return;
+  }
+  _tok=genTok();_key=await deriveKey(_tok);
+  sessionStorage.setItem(_SK,JSON.stringify({token:_tok,expiry:Date.now()+_EX}));
+  sp.style.display='none';btn.disabled=false;
+  await bootApp();
+}
+function clearLE(){document.getElementById('lerr').textContent='';}
+function lerr(m){document.getElementById('lerr').textContent=m;}
+function toggleEye(){const i=document.getElementById('pwdIn');i.type=i.type==='password'?'text':'password';}
+
+async function checkSession(){
+  const r=sessionStorage.getItem(_SK);if(!r)return false;
+  try{const{token,expiry}=JSON.parse(r);if(Date.now()>expiry){sessionStorage.removeItem(_SK);return false;}_tok=token;_key=await deriveKey(token);return true;}catch{return false;}
+}
+function logout(){cleanLS();sessionStorage.removeItem(_SK);_tok=null;_key=null;allEleves=[];rawRows=[];rawHeaders=[];
+  document.getElementById('app').style.display='none';document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('pwdIn').value='';clearLE();showToast('✓ Déconnexion effectuée','success');}
+
+setInterval(()=>{const r=sessionStorage.getItem(_SK);if(!r&&document.getElementById('app').style.display!=='none'){logout();showToast('⏱ Session expirée','error');}},60000);
+
+async function bootApp(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+  const{expiry}=JSON.parse(sessionStorage.getItem(_SK));
+  document.getElementById('sessionLbl').textContent=`Session · ${Math.round((expiry-Date.now())/3600000)}h restante(s)`;
+  const saved=await sGet('eleves');
+  if(saved&&Array.isArray(saved)&&saved.length){
+    allEleves=saved;
+    const fn=await sGet('fn');
+    if(fn){document.getElementById('ubadge').style.display='inline-flex';document.getElementById('ubadge').textContent='✓ '+fn;}
+    rebuildClassFilter();applyFilters();
+  }
+  updateStats();
+}
+
+// ══════════════════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════════════════
+let allEleves=[];       // [{nom,prenom,sexe,classe,catId,apprSem,apprFA,_id}]
+let filteredEleves=[];
+let rawRows=[], rawHeaders=[], pendingFile=null;
+let aiTargetId=null, aiTargetField=null, aiSug='';
+let usedTpl={};
+let currentPane='s';
+
+let _pt=null;
+function dPersist(){clearTimeout(_pt);_pt=setTimeout(()=>sSet('eleves',allEleves),800);}
+
+// ══════════════════════════════════════════════════════
+//  CATEGORIES
+// ══════════════════════════════════════════════════════
+const CATS=[
+  {id:1,label:'1 – Excellent semestre (moteur)'},
+  {id:2,label:'2 – Très bon semestre (sérieux, investi)'},
+  {id:3,label:'3 – Semestre satisfaisant'},
+  {id:4,label:'4 – Discret mais sérieux'},
+  {id:5,label:'5 – Sérieux, manque de concentration'},
+  {id:6,label:'6 – Potentiel irrégulier'},
+  {id:7,label:'7 – Dynamique à canaliser'},
+  {id:8,label:'8 – Manque d\'investissement'},
+  {id:9,label:'9 – Inaptitude sur la période'},
+  {id:10,label:'10 – Moteur & esprit collectif'},
+  {id:11,label:'11 – Excellent (collectif)'}
+];
+
+function catOptions(sel=3){
+  return CATS.map(c=>`<option value="${c.id}"${c.id===sel?' selected':''}>${c.label}</option>`).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  TEMPLATES
+// ══════════════════════════════════════════════════════
+const TPL={
+  1:{M:["X est un élève très sérieux et pleinement investi en EPS. Moteur au sein du groupe, vous participez activement aux activités et adoptez une attitude exemplaire. Votre engagement constant et votre dynamisme ont permis de réaliser un excellent semestre. Bravo.",
+        "X se distingue par son sérieux et son excellent état d'esprit en EPS. Vous êtes moteur du groupe et participez activement aux activités. Votre engagement et votre dynamisme ont contribué à un excellent semestre. Bravo !",
+        "X est moteur et volontaire en EPS. Vous participez activement, favorisez l'entraide et encouragez le groupe. Votre engagement constant a permis de réussir un excellent semestre. Bravo !",
+        "X montre un excellent état d'esprit et s'implique pleinement en EPS. Vous stimulez vos camarades et contribuez à une ambiance positive. En poursuivant sur cette voie, vous consoliderez vos acquis. Félicitations !",
+        "X fait preuve de sérieux et d'un excellent esprit collectif en EPS. Vous motivez le groupe et participez activement à toutes les activités. Votre énergie et votre engagement ont permis un excellent semestre. Félicitations !"],
+     F:["X est une élève très sérieuse et pleinement investie en EPS. Moteur au sein du groupe, vous participez activement aux activités et adoptez une attitude exemplaire. Votre engagement constant et votre dynamisme ont permis de réaliser un excellent semestre. Bravo.",
+        "X se distingue par son sérieux et son excellent état d'esprit en EPS. Vous êtes moteur du groupe et participez activement aux activités. Votre engagement et votre dynamisme ont contribué à un excellent semestre. Bravo !",
+        "X joue un rôle fédérateur en EPS. Vous participez activement et contribuez à une ambiance de travail positive. Votre sérieux et votre engagement ont permis un excellent semestre. Bravo !",
+        "X montre un excellent état d'esprit et s'implique pleinement en EPS. Vous stimulez vos camarades et contribuez à une ambiance positive. En poursuivant sur cette voie, vous consoliderez vos acquis. Félicitations !",
+        "X fait preuve de sérieux et d'un excellent esprit collectif en EPS. Vous motivez le groupe et participez activement à toutes les activités. Votre énergie et votre engagement ont permis un excellent semestre. Félicitations !"]},
+  2:{M:["X fait preuve de sérieux et d'investissement en EPS. Vous êtes à l'écoute des consignes et participez activement. En poursuivant cette attention, vous consoliderez vos compétences. Votre engagement a contribué à un très bon semestre. Bravo !",
+        "X est appliqué et attentif en EPS. Vous réalisez les activités avec sérieux et régularité. En maintenant cette rigueur, vous progresserez encore. Votre implication a contribué à un très bon semestre. Félicitations !",
+        "X est autonome et motivé en EPS. Vous prenez des initiatives et travaillez avec indépendance. En continuant sur cette voie, vous consoliderez vos acquis. Votre engagement a permis un très bon semestre. Bravo !",
+        "X participe régulièrement et de façon constructive aux activités. Vous respectez les consignes et êtes impliqué dans le groupe. En maintenant ce rythme, vous progresserez davantage. Votre attitude a contribué à un très bon semestre. Félicitations !",
+        "X fait preuve de sérieux et d'investissement en EPS. Vous vous impliquez pleinement dans les activités et appliquez les consignes avec rigueur. Votre engagement régulier et votre bonne attitude contribuent à un très bon semestre."],
+     F:["X fait preuve de sérieux et d'investissement en EPS. Vous êtes à l'écoute des consignes et participez activement. En poursuivant cette attention, vous consoliderez vos compétences. Votre engagement a contribué à un très bon semestre. Bravo !",
+        "X est appliquée et attentive en EPS. Vous réalisez les activités avec sérieux et régularité. En maintenant cette rigueur, vous progresserez encore. Votre implication a contribué à un très bon semestre. Félicitations !",
+        "X est autonome et motivée en EPS. Vous prenez des initiatives et travaillez avec indépendance. En continuant sur cette voie, vous consoliderez vos acquis. Votre engagement a permis un très bon semestre. Bravo !",
+        "X participe régulièrement et de façon constructive aux activités. Vous respectez les consignes et êtes impliquée dans le groupe. En maintenant ce rythme, vous progresserez davantage. Votre attitude a contribué à un très bon semestre. Félicitations !",
+        "X fait preuve de sérieux et d'investissement en EPS. Vous vous impliquez pleinement dans les activités et appliquez les consignes avec rigueur. Votre engagement régulier et votre bonne attitude contribuent à un très bon semestre."]},
+  3:{M:["X est un élève sérieux et appliqué en EPS. Vous réalisez les activités avec régularité et respectez les consignes. En restant constant, vous pourrez améliorer vos performances. Votre sérieux a permis un semestre satisfaisant. Bravo !",
+        "X adopte une attitude positive et appliquée en EPS. Vous participez aux activités avec sérieux et respect. En développant votre engagement, vous consoliderez vos acquis. Votre implication a contribué à un semestre satisfaisant. Félicitations !",
+        "X s'implique correctement dans les activités en EPS. Vous suivez les consignes et participez avec sérieux. En vous investissant davantage, vous pourrez progresser encore. Votre sérieux a permis un semestre satisfaisant. Bravo !",
+        "X est un élève sérieux et appliqué en EPS. Vous réalisez les activités demandées avec attention et respectez les consignes. Votre sérieux constant contribue à un semestre satisfaisant.",
+        "X fait preuve de régularité et de sérieux en EPS. Votre participation est constante et vous respectez les consignes. En maintenant ce cap, vous progresserez davantage. Semestre satisfaisant. Bravo !"],
+     F:["X est une élève sérieuse et appliquée en EPS. Vous réalisez les activités avec régularité et respectez les consignes. En restant constante, vous pourrez améliorer vos performances. Votre sérieux a permis un semestre satisfaisant. Bravo !",
+        "X adopte une attitude positive et appliquée en EPS. Vous participez aux activités avec sérieux et respect. En développant votre engagement, vous consoliderez vos acquis. Votre implication a contribué à un semestre satisfaisant. Félicitations !",
+        "X s'implique correctement dans les activités en EPS. Vous suivez les consignes et participez avec sérieux. En vous investissant davantage, vous pourrez progresser encore. Votre sérieux a permis un semestre satisfaisant. Bravo !",
+        "X est une élève sérieuse et appliquée en EPS. Vous réalisez les activités demandées avec attention et respectez les consignes. Votre sérieux constant contribue à un semestre satisfaisant.",
+        "X fait preuve de régularité et de sérieux en EPS. Votre participation est constante et vous respectez les consignes. En maintenant ce cap, vous progresserez davantage. Semestre satisfaisant. Bravo !"]},
+  4:{M:["X est un élève discret mais sérieux en EPS. Vous participez calmement aux activités et accomplissez votre travail avec soin. En gagnant un peu plus en audace dans le groupe, vous pourrez progresser davantage. Votre sérieux est appréciable. Bravo !",
+        "X adopte une attitude respectueuse et appliquée en EPS. Vous suivez les consignes et contribuez au bon déroulement des activités. En participant plus activement, vous consoliderez vos compétences. Votre implication est appréciable. Félicitations !",
+        "X est appliqué et attentif en EPS. Vous réalisez vos activités avec soin et régularité. En participant un peu plus aux échanges de groupe, vous pourrez progresser davantage. Votre sérieux est notable. Bravo !",
+        "X est un élève discret mais sérieux en EPS. Vous accomplissez votre travail avec application et participez de manière régulière aux activités. Votre sérieux et votre implication sont appréciables."],
+     F:["X est une élève discrète mais sérieuse en EPS. Vous participez calmement aux activités et accomplissez votre travail avec soin. En gagnant un peu plus en audace dans le groupe, vous pourrez progresser davantage. Votre sérieux est appréciable. Bravo !",
+        "X adopte une attitude respectueuse et appliquée en EPS. Vous suivez les consignes et contribuez au bon déroulement des activités. En participant plus activement, vous consoliderez vos compétences. Votre implication est appréciable. Félicitations !",
+        "X est appliquée et attentive en EPS. Vous réalisez vos activités avec soin et régularité. En participant un peu plus aux échanges de groupe, vous pourrez progresser davantage. Votre sérieux est notable. Bravo !",
+        "X est une élève discrète mais sérieuse en EPS. Vous accomplissez votre travail avec application et participez de manière régulière aux activités. Votre sérieux et votre implication sont appréciables."]},
+  5:{M:["X fait preuve de sérieux en EPS. Vous participez aux activités, mais votre attention se disperse parfois. En restant concentré jusqu'au bout, vous consoliderez vos acquis. Votre engagement reste appréciable. Bravo !",
+        "X s'investit en EPS, mais votre concentration est irrégulière. Vous pourriez progresser davantage en écoutant avec plus d'attention les consignes. Votre sérieux est notable malgré ces points à améliorer. Félicitations !",
+        "X est sérieux en EPS, mais vous avez tendance à vous disperser sur certaines activités. En renforçant votre attention, vous progresserez plus efficacement. Votre engagement reste apprécié. Bravo !",
+        "X fait preuve de sérieux en EPS. Toutefois, une meilleure concentration lors des activités et une attention plus soutenue aux consignes vous permettraient de progresser davantage."],
+     F:["X fait preuve de sérieux en EPS. Vous participez aux activités, mais votre attention se disperse parfois. En restant concentrée jusqu'au bout, vous consoliderez vos acquis. Votre engagement reste appréciable. Bravo !",
+        "X s'investit en EPS, mais votre concentration est irrégulière. Vous pourriez progresser davantage en écoutant avec plus d'attention les consignes. Votre sérieux est notable malgré ces points à améliorer. Félicitations !",
+        "X est sérieuse en EPS, mais vous avez tendance à vous disperser sur certaines activités. En renforçant votre attention, vous progresserez plus efficacement. Votre engagement reste apprécié. Bravo !",
+        "X fait preuve de sérieux en EPS. Toutefois, une meilleure concentration lors des activités et une attention plus soutenue aux consignes vous permettraient de progresser davantage."]},
+  6:{M:["X possède de bonnes capacités en EPS. Votre investissement reste irrégulier. En vous impliquant davantage et en restant concentré, vous pourrez tirer pleinement parti des activités. Votre potentiel est prometteur. Bravo !",
+        "X montre de bonnes aptitudes en EPS, mais votre engagement est parfois intermittent. En participant plus régulièrement, vous améliorerez vos performances. Votre potentiel est évident. Félicitations !",
+        "X a du potentiel en EPS, mais votre investissement fluctue. Vous pourriez tirer un meilleur profit des activités en vous impliquant plus régulièrement. Votre sérieux est encourageant. Bravo !",
+        "X possède de bonnes capacités en EPS, mais votre investissement reste irrégulier. En vous impliquant davantage et en restant plus concentré, vous pourriez tirer pleinement parti des activités proposées."],
+     F:["X possède de bonnes capacités en EPS. Votre investissement reste irrégulier. En vous impliquant davantage et en restant concentrée, vous pourrez tirer pleinement parti des activités. Votre potentiel est prometteur. Bravo !",
+        "X montre de bonnes aptitudes en EPS, mais votre engagement est parfois intermittent. En participant plus régulièrement, vous améliorerez vos performances. Votre potentiel est évident. Félicitations !",
+        "X a du potentiel en EPS, mais votre investissement fluctue. Vous pourriez tirer un meilleur profit des activités en vous impliquant plus régulièrement. Votre sérieux est encourageant. Bravo !",
+        "X possède de bonnes capacités en EPS, mais votre investissement reste irrégulier. En vous impliquant davantage et en restant plus concentrée, vous pourriez tirer pleinement parti des activités proposées."]},
+  7:{M:["X est un élève dynamique en EPS. Vous participez avec énergie, mais votre attention se disperse parfois. En canalisant mieux votre énergie, vous progresserez davantage. Votre motivation est appréciable. Bravo !",
+        "X est très actif en EPS et peut devenir moteur du groupe. En concentrant votre énergie sur les tâches demandées, vous optimiserez vos résultats. Votre enthousiasme est un atout. Félicitations !",
+        "X a une énergie débordante en EPS. Vous participez avec vitalité, mais parfois au détriment de la concentration. En vous focalisant davantage sur les consignes, vous progresserez efficacement. Bravo !",
+        "X est un élève dynamique en EPS. En canalisant mieux votre énergie et en restant concentré sur les tâches demandées, vous pourriez améliorer votre efficacité."],
+     F:["X est une élève dynamique en EPS. Vous participez avec énergie, mais votre attention se disperse parfois. En canalisant mieux votre énergie, vous progresserez davantage. Votre motivation est appréciable. Bravo !",
+        "X est très active en EPS et peut devenir moteur du groupe. En concentrant votre énergie sur les tâches demandées, vous optimiserez vos résultats. Votre enthousiasme est un atout. Félicitations !",
+        "X a une énergie débordante en EPS. Vous participez avec vitalité, mais parfois au détriment de la concentration. En vous focalisant davantage sur les consignes, vous progresserez efficacement. Bravo !",
+        "X est une élève dynamique en EPS. En canalisant mieux votre énergie et en restant concentrée sur les tâches demandées, vous pourriez améliorer votre efficacité."]},
+  8:{M:["X n'a pas pleinement exploité son potentiel en EPS. Votre investissement et votre attention sont insuffisants. En vous impliquant plus sérieusement, vous pourrez améliorer vos résultats. Une évolution de votre attitude est nécessaire.",
+        "X montre un sérieux limité en EPS. Votre engagement reste insuffisant et votre attention à certaines consignes est faible. Un effort plus régulier est indispensable pour progresser. Changement nécessaire.",
+        "X n'exploite pas pleinement ses capacités en EPS. Votre implication est à renforcer et votre attention doit s'améliorer. En évoluant sur ces points, vous pourrez progresser.",
+        "X n'a pas pleinement exploité son potentiel en EPS ce semestre. Un manque d'investissement et d'attention aux consignes a limité vos progrès. Une implication plus sérieuse est indispensable."],
+     F:["X n'a pas pleinement exploité son potentiel en EPS. Votre investissement et votre attention sont insuffisants. En vous impliquant plus sérieusement, vous pourrez améliorer vos résultats. Une évolution de votre attitude est nécessaire.",
+        "X montre un sérieux limité en EPS. Votre engagement reste insuffisant et votre attention à certaines consignes est faible. Un effort plus régulier est indispensable pour progresser. Changement nécessaire.",
+        "X n'exploite pas pleinement ses capacités en EPS. Votre implication est à renforcer et votre attention doit s'améliorer. En évoluant sur ces points, vous pourrez progresser.",
+        "X n'a pas pleinement exploité son potentiel en EPS ce semestre. Un manque d'investissement et d'attention aux consignes a limité vos progrès. Une implication plus sérieuse est indispensable."]},
+  9:{M:["X a fait preuve de sérieux en EPS. Une inaptitude sur une partie de la période a limité votre participation aux activités. Votre engagement reste apprécié malgré cette contrainte. Bravo !",
+        "X a démontré un bon état d'esprit en EPS malgré une inaptitude physique sur la période. Votre implication reste appréciable.",
+        "X a fait preuve de sérieux en EPS. Une inaptitude sur une partie de la période a limité votre participation aux activités."],
+     F:["X a fait preuve de sérieux en EPS. Une inaptitude sur une partie de la période a limité votre participation aux activités. Votre engagement reste apprécié malgré cette contrainte. Bravo !",
+        "X a démontré un bon état d'esprit en EPS malgré une inaptitude physique sur la période. Votre implication reste appréciable.",
+        "X a fait preuve de sérieux en EPS. Une inaptitude sur une partie de la période a limité votre participation aux activités."]},
+  10:{M:["X se distingue par son sérieux et son excellent état d'esprit en EPS. Vous contribuez activement à l'esprit collectif et participez pleinement aux activités. Votre engagement est très apprécié. Bravo !",
+         "X est moteur dans le groupe et démontre un excellent état d'esprit. Vous aidez vos camarades et favorisez l'entraide. Votre investissement a permis de réussir un excellent semestre. Félicitations !",
+         "X joue un rôle fédérateur en EPS. Vous participez activement et contribuez à une ambiance de travail positive. Votre sérieux et votre engagement ont permis un excellent semestre. Bravo !",
+         "X se distingue par son sérieux et son excellent état d'esprit en EPS. Moteur au sein du groupe, vous contribuez activement à une ambiance de travail positive."],
+      F:["X se distingue par son sérieux et son excellent état d'esprit en EPS. Vous contribuez activement à l'esprit collectif et participez pleinement aux activités. Votre engagement est très apprécié. Bravo !",
+         "X est moteur dans le groupe et démontre un excellent état d'esprit. Vous aidez vos camarades et favorisez l'entraide. Votre investissement a permis de réussir un excellent semestre. Félicitations !",
+         "X joue un rôle fédérateur en EPS. Vous participez activement et contribuez à une ambiance de travail positive. Votre sérieux et votre engagement ont permis un excellent semestre. Bravo !",
+         "X se distingue par son sérieux et son excellent état d'esprit en EPS. Moteur au sein du groupe, vous contribuez activement à une ambiance de travail positive."]},
+  11:{M:["X se distingue par son sérieux et son excellent état d'esprit en EPS. Vous êtes moteur du groupe et participez activement aux activités. Votre engagement et votre dynamisme ont contribué à un excellent semestre. Bravo !",
+         "X montre un excellent état d'esprit et s'implique pleinement en EPS. Vous stimulez vos camarades et contribuez à une ambiance positive. En poursuivant sur cette voie, vous consoliderez vos acquis. Félicitations !",
+         "X est moteur et volontaire en EPS. Vous participez activement, favorisez l'entraide et encouragez le groupe. Votre engagement constant a permis de réussir un excellent semestre. Bravo !",
+         "X se distingue par son implication et son esprit positif en EPS. Vous contribuez à la dynamique du groupe et soutenez vos camarades. Votre sérieux et votre motivation ont permis un excellent semestre. Félicitations !",
+         "X joue un rôle fédérateur en EPS. Vous participez pleinement aux activités et inspirez vos camarades par votre sérieux et votre état d'esprit. Votre engagement a permis un excellent semestre. Bravo !",
+         "X fait preuve de sérieux et d'un excellent esprit collectif en EPS. Vous motivez le groupe et participez activement à toutes les activités. Votre énergie et votre engagement ont permis un excellent semestre. Félicitations !"],
+      F:["X se distingue par son sérieux et son excellent état d'esprit en EPS. Vous êtes moteur du groupe et participez activement aux activités. Votre engagement et votre dynamisme ont contribué à un excellent semestre. Bravo !",
+         "X montre un excellent état d'esprit et s'implique pleinement en EPS. Vous stimulez vos camarades et contribuez à une ambiance positive. En poursuivant sur cette voie, vous consoliderez vos acquis. Félicitations !",
+         "X est moteur et volontaire en EPS. Vous participez activement, favorisez l'entraide et encouragez le groupe. Votre engagement constant a permis de réussir un excellent semestre. Bravo !",
+         "X se distingue par son implication et son esprit positif en EPS. Vous contribuez à la dynamique du groupe et soutenez vos camarades. Votre sérieux et votre motivation ont permis un excellent semestre. Félicitations !",
+         "X joue un rôle fédérateur en EPS. Vous participez pleinement aux activités et inspirez vos camarades par votre sérieux et votre état d'esprit. Votre engagement a permis un excellent semestre. Bravo !",
+         "X fait preuve de sérieux et d'un excellent esprit collectif en EPS. Vous motivez le groupe et participez activement à toutes les activités. Votre énergie et votre engagement ont permis un excellent semestre. Félicitations !"]}
+};
+
+const FA={
+  1:["Très bons résultats. Engagement exemplaire et esprit collectif remarquable. Élève moteur dans le groupe, apportant une contribution positive aux activités.",
+     "Excellents résultats. Travail sérieux et investi, avec un dynamisme et un état d'esprit remarquables ayant favorisé la réussite du groupe.",
+     "Résultats excellents. Implication constante et attitude exemplaire. Élève moteur ayant contribué activement à l'ambiance de travail positive."],
+  2:["Bons résultats. Travail sérieux et appliqué, avec investissement régulier et attitude favorable à la progression.",
+     "Très bons résultats. Travail sérieux et investi, avec une participation active et une volonté constante de progresser.",
+     "Bons résultats. Travail sérieux et appliqué, avec implication régulière et attitude calme favorisant la progression."],
+  3:["Résultats corrects. Travail sérieux et régulier, avec une attitude respectueuse et une implication constante.",
+     "Résultats corrects. Travail sérieux avec implication parfois limitée ; gagner en régularité et en rigueur permettra de progresser davantage.",
+     "Résultats satisfaisants. Travail sérieux et appliqué, avec une participation régulière et un respect des consignes."],
+  4:["Résultats corrects. Travail sérieux et appliqué, avec besoin de renforcer la concentration et l'autonomie pour progresser davantage.",
+     "Résultats corrects. Travail sérieux et investi, avec besoin de renforcer la concentration et l'autonomie pour exploiter pleinement ses capacités.",
+     "Bons résultats. Travail sérieux et appliqué, avec implication constante et attitude respectueuse en cours."],
+  5:["Résultats corrects. Travail sérieux avec concentration irrégulière ; un effort soutenu d'attention permettra d'exploiter pleinement les capacités.",
+     "Résultats corrects. Travail sérieux et investi, avec besoin de renforcer la concentration et l'autonomie pour exploiter pleinement ses capacités.",
+     "Résultats satisfaisants. Travail sérieux mais attention parfois dispersée ; une concentration accrue favoriserait la progression."],
+  6:["Résultats corrects. Travail sérieux et investi, avec besoin de renforcer la régularité et l'engagement pour exploiter pleinement le potentiel.",
+     "Résultats variables. Capacités réelles mais investissement irrégulier ; une implication plus constante permettrait de progresser davantage.",
+     "Résultats corrects. Potentiel évident mais engagement à renforcer pour une progression optimale."],
+  7:["Résultats corrects. Dynamisme certain, mais besoin de canaliser l'énergie pour optimiser l'efficacité en cours.",
+     "Résultats satisfaisants. Enthousiasme et dynamisme appréciables, avec besoin de renforcer la concentration sur les consignes.",
+     "Résultats corrects. Participation active et dynamique ; un meilleur contrôle de l'énergie favoriserait la progression."],
+  8:["Résultats insuffisants. Travail et implication très limités ; un engagement et un comportement plus soutenus sont indispensables pour progresser.",
+     "Résultats insuffisants. Travail et implication très limités ; un effort sérieux et régulier est nécessaire pour progresser.",
+     "Résultats en deçà du potentiel. Investissement et attention insuffisants ; une évolution de l'attitude est nécessaire."],
+  9:["Dispensé. Inaptitude sur la période ayant limité la participation aux activités.",
+     "Résultats partiels en raison d'une inaptitude. Attitude sérieuse et investissement appréciables dans les conditions données.",
+     "Dispensé sur une partie de la période. Engagement et sérieux appréciables malgré la contrainte physique."],
+  10:["Très bons résultats. Travail sérieux et investi, avec une contribution positive au groupe et un excellent état d'esprit collectif.",
+      "Bons résultats. Travail sérieux et appliqué, avec investissement régulier et attitude favorable à la progression.",
+      "Excellents résultats. Rôle fédérateur et esprit collectif remarquable ayant contribué à la dynamique de groupe."],
+  11:["Excellents résultats. Implication exemplaire et esprit collectif remarquable. Moteur dans le groupe.",
+      "Très bons résultats. Travail sérieux et investi, avec dynamisme et contribution positive à l'ambiance de travail.",
+      "Excellents résultats. Engagement constant, esprit positif et rôle fédérateur ayant contribué à la réussite du groupe."]
+};
+
+const LYCEE={
+  1:["L'élève fait preuve d'un sérieux exemplaire et d'un investissement total en EPS. Moteur au sein du groupe, il participe activement à toutes les activités et adopte une attitude irréprochable. Son engagement constant a permis un excellent semestre.",
+     "Elève sérieux et très investi. Moteur dans le groupe, son dynamisme et son excellent état d'esprit ont contribué activement aux activités. Excellent semestre. Bravo !",
+     "L'élève se distingue par son sérieux et son excellent état d'esprit collectif en EPS. Pleinement impliqué, il favorise l'entraide et contribue à une ambiance de travail positive. Excellent semestre.",
+     "L'élève est particulièrement investi en EPS. Son engagement, son sérieux et son rôle moteur au sein du groupe ont permis de réussir un excellent semestre. Félicitations !",
+     "Elève moteur et exemplaire. Son implication constante, son dynamisme et son excellent état d'esprit ont contribué à un semestre remarquable."],
+  2:["L'élève fait preuve de sérieux et d'investissement en EPS. Attentif aux consignes, il participe régulièrement et avec application. Très bon semestre.",
+     "Elève sérieux et appliqué. Son implication régulière et son respect des consignes ont contribué à un très bon semestre.",
+     "L'élève est autonome et motivé en EPS. Son engagement régulier et sa rigueur dans le travail ont permis d'atteindre de très bons résultats.",
+     "L'élève montre un sérieux constant en EPS. Sa participation active et son application dans les activités contribuent à un très bon semestre.",
+     "Elève investi et appliqué. Son engagement a permis un très bon semestre. Bravo !"],
+  3:["L'élève est sérieux et appliqué en EPS. Sa participation régulière et son respect des consignes contribuent à un semestre satisfaisant.",
+     "Elève sérieux. Son travail régulier et son attitude positive ont permis un semestre satisfaisant.",
+     "L'élève s'implique correctement en EPS. Il respecte les consignes et participe avec sérieux. Semestre satisfaisant.",
+     "L'élève adopte une attitude positive et appliquée. Son implication a contribué à un semestre satisfaisant.",
+     "Elève appliqué et régulier. Son sérieux constant a permis un semestre satisfaisant."],
+  4:["L'élève est discret mais sérieux en EPS. Il accomplit son travail avec application et participe régulièrement. Son sérieux est appréciable.",
+     "Elève discret mais appliqué. Sa participation calme et son travail soigné témoignent d'un sérieux appréciable.",
+     "L'élève adopte une attitude respectueuse et appliquée. Il contribue positivement au bon déroulement des activités. Son sérieux est notable.",
+     "L'élève est attentif et appliqué en EPS. Il réalise ses activités avec soin et régularité. Son sérieux est appréciable."],
+  5:["L'élève fait preuve de sérieux en EPS. Sa concentration reste cependant irrégulière. En renforçant son attention, il progresserait davantage.",
+     "Elève sérieux mais à la concentration fluctuante. Un effort d'écoute plus soutenu permettrait d'exploiter pleinement ses capacités.",
+     "L'élève s'investit en EPS mais a tendance à se disperser. En restant plus concentré sur les consignes, il améliorera son efficacité.",
+     "L'élève est sérieux mais sa concentration est irrégulière. Une attention plus soutenue lui permettrait de progresser davantage."],
+  6:["L'élève possède de bonnes capacités en EPS, mais son investissement reste irrégulier. En s'impliquant davantage, il pourrait tirer pleinement parti des activités.",
+     "Elève au potentiel réel mais à l'engagement variable. Une implication plus régulière lui permettrait de progresser efficacement.",
+     "L'élève montre de bonnes aptitudes en EPS. Son engagement parfois intermittent limite sa progression. Plus de régularité lui permettrait d'optimiser ses résultats.",
+     "L'élève a du potentiel en EPS mais son investissement fluctue. Une participation plus constante serait bénéfique."],
+  7:["L'élève est dynamique en EPS. Son énergie est un atout, mais une meilleure canalisation lui permettrait d'améliorer son efficacité.",
+     "Elève dynamique et enthousiaste. En concentrant son énergie sur les tâches demandées, il optimisera ses résultats.",
+     "L'élève participe avec dynamisme en EPS. En canalisant mieux son énergie et en restant focalisé sur les consignes, il progressera davantage.",
+     "L'élève est actif et peut devenir moteur du groupe. En concentrant son énergie, il améliorera son efficacité."],
+  8:["L'élève n'a pas pleinement exploité son potentiel en EPS. Un investissement et une attention insuffisants ont limité ses progrès. Une évolution de son attitude est nécessaire.",
+     "Elève dont l'implication reste insuffisante. Un engagement plus sérieux est indispensable pour progresser.",
+     "L'élève montre un investissement limité en EPS. Son attention aux consignes doit s'améliorer. Un effort régulier est nécessaire.",
+     "L'élève n'exploite pas pleinement ses capacités. Son implication est à renforcer pour permettre une réelle progression."],
+  9:["L'élève a fait preuve de sérieux en EPS. Une inaptitude sur la période a limité sa participation aux activités. Son engagement est apprécié.",
+     "Elève sérieux, dispensé sur une partie de la période. Son attitude reste appréciable malgré la contrainte.",
+     "L'élève a démontré un bon état d'esprit malgré une inaptitude physique sur la période. Son engagement est apprécié."],
+  10:["L'élève se distingue par son sérieux et son excellent état d'esprit collectif. Moteur dans le groupe, il contribue à une ambiance positive. Très bon semestre.",
+      "L'élève est moteur dans le groupe et démontre un excellent état d'esprit. Son engagement et son aide aux camarades sont très appréciés. Excellent semestre.",
+      "L'élève joue un rôle fédérateur en EPS. Sa participation active et son esprit collectif ont contribué à un excellent semestre."],
+  11:["L'élève fait preuve d'un excellent état d'esprit collectif. Moteur dans le groupe, il s'implique pleinement et favorise l'entraide. Excellent semestre.",
+      "Elève exemplaire, moteur du groupe. Son dynamisme, son sérieux et son esprit positif ont largement contribué à la réussite du semestre.",
+      "L'élève se distingue par son implication et son esprit positif. Il contribue à la dynamique du groupe et soutient ses camarades. Excellent semestre.",
+      "L'élève joue un rôle fédérateur remarquable. Son engagement constant et son excellent état d'esprit ont permis un semestre remarquable.",
+      "L'élève est moteur et volontaire. Il favorise l'entraide et encourage le groupe. Excellent semestre. Félicitations !"]
+};
+
+// ══════════════════════════════════════════════════════
+//  TEMPLATE ENGINE
+// ══════════════════════════════════════════════════════
+function pickTpl(pool,key){
+  if(!usedTpl[key])usedTpl[key]=new Set();
+  const u=usedTpl[key];
+  if(u.size>=pool.length)u.clear();
+  let i,t=0;do{i=Math.floor(Math.random()*pool.length);t++;}while(u.has(i)&&t<pool.length*3);
+  u.add(i);return pool[i];
+}
+
+function genSec(e){
+  const g=e.sexe==='F'?'F':'M';
+  const p=(TPL[e.catId]||TPL[3])[g];
+  const t=pickTpl(p,`s${e.catId}${g}`);
+  return t.replace(/^X\b/,e.prenom||e.nom||'L\'élève');
+}
+
+function genSem(e){
+  const p=LYCEE[e.catId]||LYCEE[3];
+  return pickTpl(p,`l${e.catId}`);
+}
+
+function genFA(e){
+  const p=FA[e.catId]||FA[3];
+  return pickTpl(p,`f${e.catId}`);
+}
+
+function generateOne(e){
+  const isSec=isSeconde(e);
+  if(isSec){ e.apprSem=genSec(e); }
+  else{ e.apprSem=genSem(e); e.apprFA=genFA(e); }
+}
+
+// ══════════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════════
+function isSeconde(e){
+  if(!e.classe)return false;
+  const c=e.classe.toLowerCase();
+  // Seconde = contains '2' or 'sec', but NOT '1', 'term', 'tl', 'tle'
+  const hasSecMarker=/\b2\b|sec/.test(c);
+  const hasLyceeMarker=/\b1\b|premi|term|tl\b|tle\b/.test(c);
+  return hasSecMarker&&!hasLyceeMarker;
+}
+
+function normalize(s){return String(s||'').trim();}
+
+// ══════════════════════════════════════════════════════
+//  FILE IMPORT — flexible column detection
+// ══════════════════════════════════════════════════════
+function handleDrop(e){e.preventDefault();document.getElementById('upZone').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)readFile(f);}
+
+function readFile(file){
+  if(!file)return;
+  pendingFile=file;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      // Try to find the best sheet: skip 'Autre appréciations', 'Appréciation fiche avenir'
+      let sheetName=null;
+      for(const s of wb.SheetNames){
+        const sl=s.toLowerCase();
+        if(sl.includes('autre')||sl.includes('fiche')||sl.includes('variante'))continue;
+        sheetName=s;break;
+      }
+      if(!sheetName)sheetName=wb.SheetNames[0];
+      const ws=wb.Sheets[sheetName];
+      rawRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      openPreviewModal(file.name);
+    }catch(err){showToast('⚠ Erreur de lecture du fichier','error');}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function detectColumns(rows){
+  // Find first row that looks like a header (has text in multiple cells)
+  let headerIdx=0;
+  for(let i=0;i<Math.min(rows.length,10);i++){
+    const r=rows[i];
+    const nz=r.filter(c=>c&&String(c).trim()).length;
+    if(nz>=2){headerIdx=i;break;}
+  }
+  const hdr=rows[headerIdx];
+  let cNom=-1,cPrenom=-1,cSexe=-1,cClasse=-1;
+  hdr.forEach((h,i)=>{
+    const s=normalize(h).toLowerCase();
+    if(s===''||s.startsWith('catég')||s.startsWith('appréciation')||s.startsWith('modèle'))return;
+    if((s.includes('nom')&&!s.includes('prénom'))||s.includes('élève')||s.includes('eleve'))cNom=i;
+    else if(s.includes('prénom')||s.includes('prenom'))cPrenom=i;
+    else if(s.includes('sexe')||s==='f'||s==='m'||s==='genre')cSexe=i;
+    else if(s.includes('class')||s.includes('groupe')||s.includes('niveau'))cClasse=i;
+  });
+  return{headerIdx,cNom,cPrenom,cSexe,cClasse,hdr};
+}
+
+function openPreviewModal(filename){
+  const{headerIdx,cNom,cPrenom,cSexe,cClasse,hdr}=detectColumns(rawRows);
+
+  // Build column selectors
+  const colOptions=hdr.map((h,i)=>`<option value="${i}"${h?'':' disabled'}>${h||`Colonne ${i+1}`}</option>`).join('');
+  const noneOpt='<option value="-1">— Non renseigné —</option>';
+
+  document.getElementById('colSelGrid').innerHTML=`
+    <div class="col-info">
+      <label>Colonne NOM *</label>
+      <div class="sw"><select id="cNom">${colOptions}</select></div>
+    </div>
+    <div class="col-info">
+      <label>Colonne PRÉNOM</label>
+      <div class="sw"><select id="cPrenom">${noneOpt}${colOptions}</select></div>
+    </div>
+    <div class="col-info">
+      <label>Colonne SEXE (F/M)</label>
+      <div class="sw"><select id="cSexe">${noneOpt}${colOptions}</select></div>
+    </div>
+    <div class="col-info">
+      <label>Colonne CLASSE</label>
+      <div class="sw"><select id="cClasse">${noneOpt}${colOptions}</select></div>
+    </div>
+  `;
+  // Pre-select detected columns
+  if(cNom>=0)document.getElementById('cNom').value=cNom;
+  if(cPrenom>=0)document.getElementById('cPrenom').value=cPrenom;
+  if(cSexe>=0)document.getElementById('cSexe').value=cSexe;
+  if(cClasse>=0)document.getElementById('cClasse').value=cClasse;
+
+  // Preview table (first 8 data rows)
+  const dataRows=rawRows.slice(headerIdx+1).filter(r=>r.some(c=>normalize(c))).slice(0,8);
+  const usedCols=[cNom,cPrenom,cSexe,cClasse].filter(c=>c>=0);
+  const previewCols=usedCols.length>0?usedCols:[0,1,2,3].filter(i=>i<hdr.length);
+  
+  let tHtml=`<table class="prev-table"><thead><tr>${previewCols.map(i=>`<th>${normalize(hdr[i])||'Col '+(i+1)}</th>`).join('')}</tr></thead><tbody>`;
+  dataRows.forEach(r=>{tHtml+=`<tr>${previewCols.map(i=>`<td>${normalize(r[i])}</td>`).join('')}</tr>`;});
+  tHtml+='</tbody></table>';
+  document.getElementById('prevTableWrap').innerHTML=`<p style="font-size:12px;color:var(--muted);margin:10px 0 6px">Aperçu des 8 premières lignes :</p>${tHtml}`;
+
+  // Store headerIdx
+  document.getElementById('prevModal')._headerIdx=headerIdx;
+  document.getElementById('prevModal')._filename=filename;
+  document.getElementById('prevModal').classList.add('open');
+}
+
+function closePrev(){document.getElementById('prevModal').classList.remove('open');}
+
+async function confirmImport(){
+  const cNom=parseInt(document.getElementById('cNom').value);
+  const cPrenom=parseInt(document.getElementById('cPrenom').value);
+  const cSexe=parseInt(document.getElementById('cSexe').value);
+  const cClasse=parseInt(document.getElementById('cClasse').value);
+  const headerIdx=document.getElementById('prevModal')._headerIdx||0;
+  const filename=document.getElementById('prevModal')._filename||'fichier.xlsx';
+
+  if(isNaN(cNom)||cNom<0){showToast('⚠ Sélectionnez la colonne NOM','error');return;}
+
+  const dataRows=rawRows.slice(headerIdx+1);
+  const imported=[];
+  let uid=0;
+
+  dataRows.forEach(r=>{
+    const nom=normalize(r[cNom]);
+    if(!nom||nom.length<1)return;
+    // Skip rows that look like headers or template content
+    const nomLow=nom.toLowerCase();
+    if(nomLow.includes('élève')&&nomLow.length>10)return;
+    if(nomLow.includes('catégorie')||nomLow.includes('modèle'))return;
+
+    const prenom=cPrenom>=0?normalize(r[cPrenom]):'';
+    let sexeRaw=cSexe>=0?normalize(r[cSexe]).toUpperCase():'';
+    const sexe=sexeRaw.startsWith('F')?'F':'M';
+    const classe=cClasse>=0?normalize(r[cClasse]):'';
+
+    imported.push({_id:'e'+(uid++),nom,prenom,sexe,classe,catId:3,apprSem:'',apprFA:''});
+  });
+
+  if(!imported.length){showToast('⚠ Aucun élève trouvé dans le fichier','error');return;}
+
+  // Sort alphabetically by nom then prenom
+  imported.sort((a,b)=>{
+    const n=a.nom.localeCompare(b.nom,'fr');
+    return n!==0?n:a.prenom.localeCompare(b.prenom,'fr');
+  });
+
+  allEleves=imported;
+  await sSet('eleves',allEleves);
+  await sSet('fn',filename);
+
+  document.getElementById('ubadge').style.display='inline-flex';
+  document.getElementById('ubadge').textContent='✓ '+filename;
+  closePrev();
+  rebuildClassFilter();
+  applyFilters();
+  updateStats();
+  showToast(`✓ ${imported.length} élèves importés et triés par ordre alphabétique`,'success');
+
+  // Auto switch to correct pane
+  const hasS=allEleves.some(isSeconde),hasL=allEleves.some(e=>!isSeconde(e));
+  if(hasL&&!hasS)switchPane('l');
+  else switchPane('s');
+}
+
+// ══════════════════════════════════════════════════════
+//  FILTERS
+// ══════════════════════════════════════════════════════
+function rebuildClassFilter(){
+  const classes=[...new Set(allEleves.map(e=>e.classe).filter(Boolean))].sort();
+  const sel=document.getElementById('classFlt');
+  sel.innerHTML='<option value="">Toutes les classes</option>';
+  classes.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+}
+
+function applyFilters(){
+  const cv=document.getElementById('classFlt').value;
+  const s=document.getElementById('searchFlt').value.toLowerCase().trim();
+  filteredEleves=allEleves.filter(e=>
+    (!cv||e.classe===cv)&&
+    (!s||e.nom.toLowerCase().includes(s)||e.prenom.toLowerCase().includes(s))
+  );
+  renderPanes();
+  updateStats();
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════════════
+function renderPanes(){renderSec();renderLyc();}
+
+function renderSec(){
+  const es=filteredEleves.filter(isSeconde);
+  const wrap=document.getElementById('wrapS');
+  const bar=document.getElementById('genBarS');
+  document.getElementById('gbCountS').textContent=es.length;
+  bar.style.display=es.length?'flex':'none';
+
+  if(!es.length){
+    wrap.innerHTML=`<div class="empty"><div class="ei">👨‍🎓</div><h3>Aucun élève de Seconde</h3><p>${allEleves.length?'Aucun élève de Seconde dans la sélection actuelle.':'Importez votre fichier Excel pour commencer.'}</p></div>`;
+    return;
+  }
+
+  let h=`<div class="toolbar">
+    <span class="badge">${es.length} élève${es.length>1?'s':''}</span>
+    <span class="badge badge-a">${es.filter(e=>e.apprSem).length} générée${es.filter(e=>e.apprSem).length>1?'s':''}</span>
+    <div class="toolbar-sep"></div>
+    <button class="btn btn-p" style="font-size:12px;padding:7px 12px" onclick="genAllVisible()">⚡ Générer tout</button>
+  </div>
+  <div class="cards-grid">`;
+
+  es.forEach((e,i)=>{
+    const idx=allEleves.indexOf(e);
+    const hasSem=!!e.apprSem;
+    h+=cardSecHtml(e,idx,i+1,hasSem);
+  });
+  h+='</div>';
+  wrap.innerHTML=h;
+}
+
+function renderLyc(){
+  const es=filteredEleves.filter(e=>!isSeconde(e));
+  const wrap=document.getElementById('wrapL');
+  const bar=document.getElementById('genBarL');
+  document.getElementById('gbCountL').textContent=es.length;
+  bar.style.display=es.length?'flex':'none';
+
+  if(!es.length){
+    wrap.innerHTML=`<div class="empty"><div class="ei">🎓</div><h3>Aucun élève de 1ère / Terminale</h3><p>${allEleves.length?'Aucun élève de 1ère/Term dans la sélection actuelle.':'Importez votre fichier Excel pour commencer.'}</p></div>`;
+    return;
+  }
+
+  let h=`<div class="toolbar">
+    <span class="badge">${es.length} élève${es.length>1?'s':''}</span>
+    <span class="badge badge-a">${es.filter(e=>e.apprSem).length} générée${es.filter(e=>e.apprSem).length>1?'s':''}</span>
+    <div class="toolbar-sep"></div>
+    <button class="btn btn-pk" style="font-size:12px;padding:7px 12px" onclick="genAllVisible()">⚡ Générer tout</button>
+  </div>
+  <div class="cards-grid">`;
+
+  es.forEach((e,i)=>{
+    const idx=allEleves.indexOf(e);
+    const hasSem=!!e.apprSem;
+    h+=cardLycHtml(e,idx,i+1,hasSem);
+  });
+  h+='</div>';
+  wrap.innerHTML=h;
+}
+
+function cardSecHtml(e,idx,num,hasSem){
+  const dot=hasSem?'sd-done':'sd-empty';
+  return `<div class="scard" id="card-${idx}">
+  <div class="scard-top">
+    <div class="scard-num"><span class="status-dot ${dot}"></span></div>
+    <div class="scard-name">
+      <strong>${e.nom}${e.prenom?' '+e.prenom:''}</strong>
+      <span>${e.classe||'–'} · <span class="chip chip-${e.sexe.toLowerCase()}">${e.sexe==='F'?'♀ F':'♂ M'}</span></span>
+    </div>
+    <div class="scard-cat">
+      <label>Catégorie</label>
+      <div class="csw"><select class="cat-select" onchange="onCatChange(${idx},this.value)">${catOptions(e.catId)}</select></div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="btn btn-p" style="font-size:12px;padding:7px 14px" onclick="genAndShow(${idx})">⚡ Générer</button>
+      <button class="btn btn-gh" onclick="toggleCard(${idx})" id="tog-${idx}">${hasSem?'▲ Voir':'▼ Voir'}</button>
+    </div>
+    <div class="scard-actions">
+      <button class="btn btn-gh" onclick="openAI(${idx},'sem')" title="Améliorer avec IA">✨</button>
+    </div>
+  </div>
+  <div class="scard-appr ${hasSem?'open':''}" id="appr-${idx}">
+    <div class="appr-block">
+      <div class="appr-label">Appréciation de semestre <span class="al-tag">Seconde · ${e.sexe==='F'?'Féminin':'Masculin'}</span></div>
+      <textarea class="appr-ta" id="ta-sem-${idx}" placeholder="Cliquez sur ⚡ Générer pour créer l'appréciation…" oninput="onApprInput(${idx},'sem',this.value)">${e.apprSem||''}</textarea>
+      <div class="appr-row">
+        <button class="btn btn-gh" onclick="regenOne(${idx},'sem')">↻ Regénérer</button>
+        <button class="btn btn-gh" onclick="openAI(${idx},'sem')">✨ IA</button>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+function cardLycHtml(e,idx,num,hasSem){
+  const dot=hasSem?'sd-done':'sd-empty';
+  return `<div class="scard" id="card-${idx}">
+  <div class="scard-top">
+    <div class="scard-num"><span class="status-dot ${dot}"></span></div>
+    <div class="scard-name">
+      <strong>${e.nom}${e.prenom?' '+e.prenom:''}</strong>
+      <span>${e.classe||'–'} · <span class="chip chip-${e.sexe.toLowerCase()}">${e.sexe==='F'?'♀ F':'♂ M'}</span></span>
+    </div>
+    <div class="scard-cat">
+      <label>Catégorie</label>
+      <div class="csw"><select class="cat-select" onchange="onCatChange(${idx},this.value)">${catOptions(e.catId)}</select></div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="btn btn-pk" style="font-size:12px;padding:7px 14px" onclick="genAndShow(${idx})">⚡ Générer</button>
+      <button class="btn btn-gh" onclick="toggleCard(${idx})" id="tog-${idx}">${hasSem?'▲ Voir':'▼ Voir'}</button>
+    </div>
+    <div class="scard-actions">
+      <button class="btn btn-gh" onclick="openAI(${idx},'sem')" title="IA semestre">✨</button>
+    </div>
+  </div>
+  <div class="scard-appr ${hasSem?'open':''}" id="appr-${idx}">
+    <div class="appr-block">
+      <div class="appr-label">Appréciation de semestre <span class="al-tag">Lycée · Masculin neutre</span></div>
+      <textarea class="appr-ta" id="ta-sem-${idx}" placeholder="Cliquez sur ⚡ Générer pour créer l'appréciation…" oninput="onApprInput(${idx},'sem',this.value)">${e.apprSem||''}</textarea>
+      <div class="appr-row">
+        <button class="btn btn-gh" onclick="regenOne(${idx},'sem')">↻</button>
+        <button class="btn btn-gh" onclick="openAI(${idx},'sem')">✨ IA</button>
+      </div>
+    </div>
+    <div class="appr-block" style="margin-top:14px">
+      <div class="appr-label">Fiche Avenir <span class="al-tag">Institutionnel · Anonyme</span></div>
+      <textarea class="appr-ta" id="ta-fa-${idx}" placeholder="Fiche Avenir…" oninput="onApprInput(${idx},'fa',this.value)">${e.apprFA||''}</textarea>
+      <div class="appr-row">
+        <button class="btn btn-gh" onclick="regenOne(${idx},'fa')">↻</button>
+        <button class="btn btn-gh" onclick="openAI(${idx},'fa')">✨ IA</button>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+// ══════════════════════════════════════════════════════
+//  CARD INTERACTIONS
+// ══════════════════════════════════════════════════════
+function onCatChange(idx,val){
+  allEleves[idx].catId=parseInt(val);
+  dPersist();
+}
+
+function onApprInput(idx,field,val){
+  if(field==='sem')allEleves[idx].apprSem=val;
+  else allEleves[idx].apprFA=val;
+  // Update status dot
+  const card=document.getElementById('card-'+idx);
+  if(card){
+    const dot=card.querySelector('.status-dot');
+    if(dot){dot.className='status-dot '+(val?'sd-done':'sd-empty');}
+  }
+  dPersist();
+}
+
+function toggleCard(idx){
+  const a=document.getElementById('appr-'+idx);
+  const b=document.getElementById('tog-'+idx);
+  const open=a.classList.toggle('open');
+  if(b)b.textContent=open?'▲ Voir':'▼ Voir';
+}
+
+function genAndShow(idx){
+  const e=allEleves[idx];
+  generateOne(e);
+  // Update textareas
+  const tSem=document.getElementById('ta-sem-'+idx);
+  if(tSem){tSem.value=e.apprSem||'';flash(tSem);}
+  const tFA=document.getElementById('ta-fa-'+idx);
+  if(tFA){tFA.value=e.apprFA||'';flash(tFA);}
+  // Open card
+  const a=document.getElementById('appr-'+idx);
+  if(a)a.classList.add('open');
+  const b=document.getElementById('tog-'+idx);
+  if(b)b.textContent='▲ Voir';
+  // Status dot
+  const card=document.getElementById('card-'+idx);
+  if(card){const d=card.querySelector('.status-dot');if(d)d.className='status-dot sd-done';}
+  dPersist();updateStats();
+}
+
+function regenOne(idx,field){
+  const e=allEleves[idx];
+  if(field==='sem'){
+    e.apprSem=isSeconde(e)?genSec(e):genSem(e);
+    const t=document.getElementById('ta-sem-'+idx);if(t){t.value=e.apprSem;flash(t);}
+  }else{
+    e.apprFA=genFA(e);
+    const t=document.getElementById('ta-fa-'+idx);if(t){t.value=e.apprFA;flash(t);}
+  }
+  dPersist();updateStats();
+}
+
+function flash(el){el.classList.add('flashed');setTimeout(()=>el.classList.remove('flashed'),1000);}
+
+// ══════════════════════════════════════════════════════
+//  GENERATE ALL VISIBLE
+// ══════════════════════════════════════════════════════
+async function genAllVisible(){
+  const toGen=filteredEleves.filter(e=>currentPane==='s'?isSeconde(e):!isSeconde(e));
+  if(!toGen.length){showToast('⚠ Aucun élève à générer','error');return;}
+  toGen.forEach(e=>generateOne(e));
+  await sSet('eleves',allEleves);
+  renderPanes();updateStats();
+  showToast(`✓ ${toGen.length} appréciation${toGen.length>1?'s':''} générée${toGen.length>1?'s':''}  ✓`,'success');
+}
+
+async function clearAllVisible(){
+  filteredEleves.forEach(e=>{ e.apprSem=''; e.apprFA=''; });
+  await sSet('eleves',allEleves);
+  renderPanes();updateStats();
+  showToast('🗑 Appréciations effacées','success');
+}
+
+// ══════════════════════════════════════════════════════
+//  STATS
+// ══════════════════════════════════════════════════════
+function updateStats(){
+  const s=allEleves.filter(isSeconde),l=allEleves.filter(e=>!isSeconde(e));
+  const sg=s.filter(e=>e.apprSem).length,lg=l.filter(e=>e.apprSem).length;
+  document.getElementById('nS').textContent=s.length||'–';
+  document.getElementById('nSg').textContent=sg||'–';
+  document.getElementById('nSp').textContent=(s.length-sg)||'–';
+  document.getElementById('nL').textContent=l.length||'–';
+  document.getElementById('nLg').textContent=lg||'–';
+  document.getElementById('nLp').textContent=(l.length-lg)||'–';
+}
+
+// ══════════════════════════════════════════════════════
+//  AI
+// ══════════════════════════════════════════════════════
+function openAI(idx,field){
+  aiTargetId=idx;aiTargetField=field;
+  const e=allEleves[idx];
+  const cur=field==='sem'?e.apprSem:e.apprFA;
+  document.getElementById('aiCur').textContent=cur||'(Aucune appréciation)';
+  document.getElementById('aiKw').value='';
+  document.getElementById('aiRes').classList.remove('vis');
+  document.getElementById('aiBtnApp').style.display='none';
+  document.getElementById('aiSp').style.display='none';
+  aiSug='';
+  document.getElementById('aiModal').classList.add('open');
+}
+function closeAI(){document.getElementById('aiModal').classList.remove('open');aiTargetId=null;aiTargetField=null;}
+
+async function callAI(){
+  const apiKey=document.getElementById('apiKey').value.trim();
+  const kw=document.getElementById('aiKw').value.trim();
+  const e=allEleves[aiTargetId];
+  const cur=aiTargetField==='sem'?e.apprSem:e.apprFA;
+  const btn=document.getElementById('aiBtnGen');
+  document.getElementById('aiSp').style.display='inline-block';btn.disabled=true;
+  const isSec=isSeconde(e),isFA=aiTargetField==='fa';
+  const sys=`Tu es un professeur d'EPS. Reformule l'appréciation en suivant ces règles :
+1. ${isSec?`L'élève est ${e.sexe==='F'?'une fille':'un garçon'}. Accorder en conséquence.`:'Toujours au masculin.'}
+2. ${isSec?`Commencer avec le prénom "${e.prenom||e.nom}".`:'Ne jamais mentionner le nom/prénom. Commencer par "L\'élève" ou "Elève".'}
+3. ${isFA?'Ton neutre et institutionnel.':'Ton scolaire et bienveillant.'}
+4. Maximum 3 phrases. Pas de markdown. Réponds UNIQUEMENT avec l'appréciation.`;
+  const usr=`Appréciation : "${cur}"\nInstructions : ${kw||'Reformuler avec plus de variété'}`;
+  try{
+    let r='';
+    if(apiKey){
+      const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`,'HTTP-Referer':location.href,'X-Title':'EPS Appréciations'},body:JSON.stringify({model:'mistralai/mistral-7b-instruct:free',messages:[{role:'system',content:sys},{role:'user',content:usr}],max_tokens:200,temperature:0.8})});
+      const d=await res.json();if(d.error)throw new Error(d.error.message);
+      r=d.choices?.[0]?.message?.content?.trim()||'';
+    }
+    if(!r)throw new Error('empty');
+    aiSug=r;
+  }catch{
+    aiSug=aiTargetField==='sem'?(isSeconde(e)?genSec(e):genSem(e)):genFA(e);
+    if(apiKey)showToast('⚠ API indisponible, génération locale','error');
+  }
+  document.getElementById('aiResT').textContent=aiSug;
+  document.getElementById('aiRes').classList.add('vis');
+  document.getElementById('aiBtnApp').style.display='inline-flex';
+  document.getElementById('aiSp').style.display='none';btn.disabled=false;
+}
+
+async function applyAI(){
+  if(!aiSug||aiTargetId===null)return;
+  const idx=aiTargetId,field=aiTargetField;
+  if(field==='sem'){allEleves[idx].apprSem=aiSug;const t=document.getElementById('ta-sem-'+idx);if(t){t.value=aiSug;flash(t);}}
+  else{allEleves[idx].apprFA=aiSug;const t=document.getElementById('ta-fa-'+idx);if(t){t.value=aiSug;flash(t);}}
+  await sSet('eleves',allEleves);
+  closeAI();showToast('✓ Appréciation mise à jour','success');updateStats();
+}
+
+// ══════════════════════════════════════════════════════
+//  EXPORT
+// ══════════════════════════════════════════════════════
+function exportXLSX(){
+  if(!allEleves.length){showToast('⚠ Aucune donnée à exporter','error');return;}
+  const wb=XLSX.utils.book_new();
+  const sEl=allEleves.filter(isSeconde),lEl=allEleves.filter(e=>!isSeconde(e));
+  const wsS=XLSX.utils.aoa_to_sheet([['Nom','Prénom','Classe','Sexe','Appréciation semestre'],...sEl.map(e=>[e.nom,e.prenom,e.classe,e.sexe,e.apprSem])]);
+  wsS['!cols']=[{wch:20},{wch:16},{wch:12},{wch:6},{wch:80}];
+  XLSX.utils.book_append_sheet(wb,wsS,'Seconde');
+  const wsL=XLSX.utils.aoa_to_sheet([['Nom','Classe','Sexe','Appréciation semestre','Fiche Avenir'],...lEl.map(e=>[e.nom,e.classe,e.sexe,e.apprSem,e.apprFA])]);
+  wsL['!cols']=[{wch:20},{wch:12},{wch:6},{wch:80},{wch:80}];
+  XLSX.utils.book_append_sheet(wb,wsL,'1ère-Terminale');
+  const wsA=XLSX.utils.aoa_to_sheet([['Nom','Prénom','Classe','Sexe','Appréciation semestre','Fiche Avenir'],...allEleves.map(e=>[e.nom,e.prenom,e.classe,e.sexe,e.apprSem,e.apprFA||''])]);
+  wsA['!cols']=[{wch:20},{wch:16},{wch:12},{wch:6},{wch:80},{wch:80}];
+  XLSX.utils.book_append_sheet(wb,wsA,'Export PRONOTE');
+  XLSX.writeFile(wb,`Appreciations_EPS_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast('↓ Export Excel généré','success');
+}
+
+// ══════════════════════════════════════════════════════
+//  UI UTILS
+// ══════════════════════════════════════════════════════
+function switchPane(p){
+  currentPane=p;
+  document.getElementById('paneS').className='pane'+(p==='s'?' active':'');
+  document.getElementById('paneL').className='pane'+(p==='l'?' active':'');
+  document.getElementById('tabS').className='tab'+(p==='s'?' ts':'');
+  document.getElementById('tabL').className='tab'+(p==='l'?' tl':'');
+}
+
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');t.textContent=msg;
+  t.className='toast '+type+' show';setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+document.getElementById('aiModal').addEventListener('click',function(e){if(e.target===this)closeAI();});
+document.getElementById('prevModal').addEventListener('click',function(e){if(e.target===this)closePrev();});
+
+// ══════════════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════════════
+(async()=>{
+  const ok=await checkSession();
+  if(ok)await bootApp();
+  else document.getElementById('pwdIn').focus();
+})();
+</script>
+</body>
+</html>
